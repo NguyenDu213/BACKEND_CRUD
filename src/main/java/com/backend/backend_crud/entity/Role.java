@@ -2,6 +2,8 @@ package com.backend.backend_crud.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 @Entity
 @Table(name = "roles")
@@ -22,7 +24,8 @@ public class Role extends BaseEntity {
     @Column(nullable = false)
     private String description;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "school_id")
-    private School school; // null = role hệ thống
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    private School school;
 }

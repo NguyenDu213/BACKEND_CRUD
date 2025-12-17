@@ -2,6 +2,8 @@ package com.backend.backend_crud.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 import java.time.LocalDateTime;
 
@@ -47,11 +49,12 @@ public class User extends BaseEntity {
     @Column(nullable = false)
     private UserScope scope;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "school_id")
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private School school;
 
-    @ManyToOne(optional = false)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "role_id", nullable = false)
     private Role role;
 }
