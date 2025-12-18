@@ -3,6 +3,8 @@ package com.backend.backend_crud.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.List;
+
 @Entity
 @Table(name = "schools")
 @Getter
@@ -29,4 +31,7 @@ public class School extends BaseEntity {
 
     @Column(nullable = false, unique = true)
     private String code;
+
+    @OneToMany(mappedBy = "school", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Role> roles;
 }
