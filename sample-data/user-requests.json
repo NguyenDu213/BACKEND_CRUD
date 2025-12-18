@@ -1,0 +1,82 @@
+{
+  "createUserRequests": [
+    {
+      "fullName": "Nguyễn Văn An",
+      "gender": "MALE",
+      "birthYear": "1980-05-15T00:00:00",
+      "address": "123 Đường Nguyễn Du, Quận Hoàn Kiếm, Hà Nội",
+      "phoneNumber": "0912345678",
+      "email": "an.nguyen@school1.edu.vn",
+      "password": "Admin123",
+      "scope": "SCHOOL",
+      "schoolId": 1,
+      "roleId": 1
+    },
+    {
+      "fullName": "Trần Thị Lan",
+      "gender": "FEMALE",
+      "birthYear": "1985-07-25T00:00:00",
+      "address": "456 Đường Nguyễn Du, Quận Hoàn Kiếm, Hà Nội",
+      "phoneNumber": "0923456789",
+      "email": "lan.tran@school1.edu.vn",
+      "password": "Teacher123",
+      "scope": "SCHOOL",
+      "schoolId": 1,
+      "roleId": 2
+    },
+    {
+      "fullName": "Lê Văn Hùng",
+      "gender": "MALE",
+      "birthYear": "2010-09-15T00:00:00",
+      "address": "789 Đường Nguyễn Du, Quận Hoàn Kiếm, Hà Nội",
+      "phoneNumber": "0934567890",
+      "email": "hung.le@school1.edu.vn",
+      "password": "Student123",
+      "scope": "SCHOOL",
+      "schoolId": 1,
+      "roleId": 3
+    },
+    {
+      "fullName": "Admin Hệ Thống",
+      "gender": "MALE",
+      "birthYear": "1980-05-15T00:00:00",
+      "address": "10 Đường Trần Phú, Hà Nội",
+      "phoneNumber": "0945678901",
+      "email": "admin@system.com",
+      "password": "Admin123",
+      "scope": "PROVIDER",
+      "schoolId": null,
+      "roleId": 1
+    },
+    {
+      "fullName": "Nhân Viên Hệ Thống",
+      "gender": "FEMALE",
+      "birthYear": "1990-08-20T00:00:00",
+      "address": "20 Đường Lý Thường Kiệt, Hà Nội",
+      "phoneNumber": "0956789012",
+      "email": "staff@system.com",
+      "password": "Staff123",
+      "scope": "PROVIDER",
+      "schoolId": null,
+      "roleId": 2
+    }
+  ],
+  "updateUserRequests": [
+    {
+      "fullName": "Nguyễn Văn An Updated",
+      "phoneNumber": "0911111111",
+      "address": "123 Đường Nguyễn Du Updated, Quận Hoàn Kiếm, Hà Nội",
+      "isActive": true
+    },
+    {
+      "fullName": "Trần Thị Lan Updated",
+      "gender": "FEMALE",
+      "isActive": true
+    },
+    {
+      "password": "NewPassword123",
+      "isActive": false
+    }
+  ]
+}
+

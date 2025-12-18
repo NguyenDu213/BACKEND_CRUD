@@ -1,0 +1,71 @@
+{
+  "createRoleRequests": [
+    {
+      "roleName": "SYSTEM_ADMIN",
+      "typeRole": "PROVIDER",
+      "description": "Quản trị viên hệ thống, có toàn quyền quản lý",
+      "schoolId": null
+    },
+    {
+      "roleName": "SYSTEM_STAFF",
+      "typeRole": "PROVIDER",
+      "description": "Nhân viên hệ thống, quản lý các trường học",
+      "schoolId": null
+    },
+    {
+      "roleName": "SCHOOL_ADMIN",
+      "typeRole": "SCHOOL",
+      "description": "Quản trị viên trường học",
+      "schoolId": 1
+    },
+    {
+      "roleName": "TEACHER",
+      "typeRole": "SCHOOL",
+      "description": "Giáo viên trong trường học",
+      "schoolId": 1
+    },
+    {
+      "roleName": "STUDENT",
+      "typeRole": "SCHOOL",
+      "description": "Học sinh trong trường học",
+      "schoolId": 1
+    },
+    {
+      "roleName": "TEACHER",
+      "typeRole": "SCHOOL",
+      "description": "Giáo viên trong trường học",
+      "schoolId": 2
+    },
+    {
+      "roleName": "STUDENT",
+      "typeRole": "SCHOOL",
+      "description": "Học sinh trong trường học",
+      "schoolId": 2
+    },
+    {
+      "roleName": "ACCOUNTANT",
+      "typeRole": "SCHOOL",
+      "description": "Kế toán trường học",
+      "schoolId": 1
+    },
+    {
+      "roleName": "LIBRARIAN",
+      "typeRole": "SCHOOL",
+      "description": "Thủ thư trường học",
+      "schoolId": 1
+    }
+  ],
+  "updateRoleRequests": [
+    {
+      "description": "Quản trị viên hệ thống, có toàn quyền quản lý - Updated"
+    },
+    {
+      "roleName": "SYSTEM_STAFF_UPDATED",
+      "description": "Nhân viên hệ thống, quản lý các trường học - Updated"
+    },
+    {
+      "description": "Giáo viên trong trường học - Mô tả chi tiết hơn"
+    }
+  ]
+}
+

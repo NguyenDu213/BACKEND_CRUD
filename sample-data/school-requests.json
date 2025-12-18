@@ -1,0 +1,60 @@
+{
+  "createSchoolRequests": [
+    {
+      "name": "Trường Tiểu học Nguyễn Du",
+      "code": "TH001",
+      "email": "thnguyendu@edu.vn",
+      "hotline": "0241234567",
+      "address": "123 Đường Nguyễn Du, Quận Hoàn Kiếm, Hà Nội",
+      "principalName": "Nguyễn Văn An"
+    },
+    {
+      "name": "Trường THCS Lê Lợi",
+      "code": "THCS002",
+      "email": "thcsleloi@edu.vn",
+      "hotline": "0242345678",
+      "address": "456 Đường Lê Lợi, Quận Ba Đình, Hà Nội",
+      "principalName": "Trần Thị Bình"
+    },
+    {
+      "name": "Trường THPT Chu Văn An",
+      "code": "THPT003",
+      "email": "thptchuvanan@edu.vn",
+      "hotline": "0243456789",
+      "address": "789 Đường Chu Văn An, Quận Đống Đa, Hà Nội",
+      "principalName": "Lê Văn Cường"
+    },
+    {
+      "name": "Trường Tiểu học Kim Đồng",
+      "code": "TH004",
+      "email": "thkimdong@edu.vn",
+      "hotline": "0244567890",
+      "address": "321 Đường Kim Đồng, Quận Cầu Giấy, Hà Nội",
+      "principalName": "Phạm Thị Hoa"
+    },
+    {
+      "name": "Trường THCS Nguyễn Trãi",
+      "code": "THCS005",
+      "email": "thcsnguyentrai@edu.vn",
+      "hotline": "0245678901",
+      "address": "654 Đường Nguyễn Trãi, Quận Thanh Xuân, Hà Nội",
+      "principalName": "Hoàng Văn Đức"
+    }
+  ],
+  "updateSchoolRequests": [
+    {
+      "name": "Trường Tiểu học Nguyễn Du Updated",
+      "address": "123 Đường Nguyễn Du Updated, Quận Hoàn Kiếm, Hà Nội",
+      "principalName": "Nguyễn Văn An Updated"
+    },
+    {
+      "hotline": "0249999999",
+      "email": "updated@edu.vn"
+    },
+    {
+      "name": "Trường THCS Lê Lợi Updated",
+      "principalName": "Trần Thị Bình Updated"
+    }
+  ]
+}
+
