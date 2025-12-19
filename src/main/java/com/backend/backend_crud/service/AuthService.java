@@ -43,20 +43,25 @@ public class AuthService {
 
     /**
      * Helper method để build JwtResponse từ User và token
+     * Match với cấu trúc frontend expect: { token, user: { id, email, fullName, scope, schoolId, roleId } }
      *
      * @param user User entity
      * @param accessToken Access token
      * @return JwtResponse
      */
     private JwtResponse buildJwtResponse(User user, String accessToken) {
-        return JwtResponse.builder()
-                .accessToken(accessToken)
-                .tokenType("Bearer")
-                .userId(user.getId())
+        JwtResponse.UserInfo userInfo = JwtResponse.UserInfo.builder()
+                .id(user.getId())
                 .email(user.getEmail())
+                .fullName(user.getFullName())
                 .scope(user.getScope().name())
-                .roleId(user.getRole().getId())
                 .schoolId(user.getSchool() != null ? user.getSchool().getId() : null)
+                .roleId(user.getRole().getId())
+                .build();
+        
+        return JwtResponse.builder()
+                .token(accessToken)
+                .user(userInfo)
                 .build();
     }
 }

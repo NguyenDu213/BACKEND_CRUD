@@ -7,17 +7,27 @@ import lombok.NoArgsConstructor;
 
 /**
  * Response DTO cho JWT authentication
+ * Match với cấu trúc frontend expect
  */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class JwtResponse {
-    private String accessToken;
-    private String tokenType = "Bearer";
-    private Long userId;
-    private String email;
-    private String scope;
-    private Long roleId;
-    private Long schoolId;
+    private String token;
+    
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class UserInfo {
+        private Long id;
+        private String email;
+        private String fullName;
+        private String scope;
+        private Long schoolId;
+        private Long roleId;
+    }
+    
+    private UserInfo user;
 }
