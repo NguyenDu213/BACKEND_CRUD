@@ -13,7 +13,6 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 public class UserRequest {
-
     @NotBlank(message = "Họ tên không được để trống")
     @Size(min = 2, max = 100, message = "Họ tên phải từ 2 đến 100 ký tự")
     private String fullName;
@@ -43,6 +42,8 @@ public class UserRequest {
 
     @NotNull(message = "Phạm vi người dùng không được để trống")
     private UserScope scope;
+
+    private Boolean isActive;
 
     private Long schoolId;
 

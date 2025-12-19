@@ -10,7 +10,7 @@ import lombok.*;
 @Builder
 @JsonInclude(JsonInclude.Include.ALWAYS)
 public class ApiResponse<T> {
-    private int status;
+    private boolean status;
     private String message;
     private T data;
 }

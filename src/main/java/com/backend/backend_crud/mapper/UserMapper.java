@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class UserMapper {
 
-    public User mapToEntity(UserRequest request, School school, Role role) {
+    public static User mapToEntity(UserRequest request, School school, Role role) {
         return User.builder()
                 .fullName(request.getFullName())
                 .gender(request.getGender())
@@ -19,14 +19,14 @@ public class UserMapper {
                 .phoneNumber(request.getPhoneNumber())
                 .email(request.getEmail())
                 .password(request.getPassword())
-                .isActive(false)
+                .isActive(request.getIsActive())
                 .scope(request.getScope())
                 .school(school)
                 .role(role)
                 .build();
     }
 
-    public UserResponse mapToResponse(User user) {
+    public static UserResponse mapToResponse(User user) {
         return UserResponse.builder()
                 .id(user.getId())
                 .fullName(user.getFullName())
