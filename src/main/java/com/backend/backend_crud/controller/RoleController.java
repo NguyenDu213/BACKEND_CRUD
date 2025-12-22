@@ -6,6 +6,7 @@ import com.backend.backend_crud.dto.response.ApiResponse;
 import com.backend.backend_crud.dto.response.RoleResponse;
 import com.backend.backend_crud.entity.RoleType;
 import com.backend.backend_crud.exception.AppException;
+import com.backend.backend_crud.mapper.RoleMapper;
 import com.backend.backend_crud.service.JwtService;
 import com.backend.backend_crud.service.service.RoleService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -29,6 +30,7 @@ public class RoleController {
         private final RoleService roleService;
         private final JwtService jwtService;
         private final HttpServletRequest httpServletRequest;
+        private final RoleMapper roleMapper;
 
         /**
          * Lấy danh sách tất cả roles
@@ -68,7 +70,7 @@ public class RoleController {
         @PostMapping
         public ResponseEntity<ApiResponse<RoleResponse>> createRole(@Valid @RequestBody RoleRequest request) {
                 Long currentUserId = getCurrentUserId();
-                RoleResponse roleResponse = convertToRoleResponse(request);
+                RoleResponse roleResponse = roleMapper.mapToResponse(request);
                 ApiResponse<RoleResponse> response = roleService.createRole(roleResponse, currentUserId);
                 return ResponseEntity.status(HttpStatus.CREATED).body(response);
         }
@@ -82,7 +84,7 @@ public class RoleController {
                         @PathVariable Long id,
                         @Valid @RequestBody UpdateRoleRequest request) {
                 Long currentUserId = getCurrentUserId();
-                RoleResponse roleResponse = convertToRoleResponse(request);
+                RoleResponse roleResponse = roleMapper.mapToResponse(request);
                 return ResponseEntity.ok(roleService.updateRole(id, roleResponse, currentUserId));
         }
 
@@ -107,29 +109,5 @@ public class RoleController {
                 String token = authHeader.substring(7);
                 jwtService.validateAccessToken(token);
                 return jwtService.getUserIdFromToken(token);
-        }
-
-        /**
-         * Chuyển đổi RoleRequest thành RoleResponse
-         */
-        private RoleResponse convertToRoleResponse(RoleRequest request) {
-                return RoleResponse.builder()
-                                .roleName(request.getRoleName())
-                                .typeRole(request.getTypeRole())
-                                .description(request.getDescription())
-                                .schoolId(request.getSchoolId())
-                                .build();
-        }
-
-        /**
-         * Chuyển đổi UpdateRoleRequest thành RoleResponse
-         */
-        private RoleResponse convertToRoleResponse(UpdateRoleRequest request) {
-                return RoleResponse.builder()
-                                .roleName(request.getRoleName())
-                                .typeRole(request.getTypeRole())
-                                .description(request.getDescription())
-                                .schoolId(request.getSchoolId())
-                                .build();
         }
 }

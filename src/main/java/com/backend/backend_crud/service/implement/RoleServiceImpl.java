@@ -19,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -42,8 +43,8 @@ public class RoleServiceImpl implements RoleService {
                 throw new AppException.ForbiddenException("Bạn không có quyền xem role hệ thống");
             }
             // Trả về tất cả role hệ thống (schoolId is null)
-            List<RoleResponse> responses = roleRepository.findBySchoolIsNull().stream()
-                    .map(this::toRoleResponse).collect(Collectors.toList());
+            List<Role> roles = roleRepository.findBySchoolIsNull();
+            List<RoleResponse> responses = mapRolesToResponses(roles);
             return new ApiResponse<>(true, "Lấy danh sách thành công", responses);
         } else if (typeRole == RoleType.SCHOOL) {
             // Check quyền Admin-School
@@ -58,8 +59,8 @@ public class RoleServiceImpl implements RoleService {
                 throw new AppException.ForbiddenException("Bạn không thuộc trường này");
             }
             // Lấy role theo schoolId
-            List<RoleResponse> responses = roleRepository.findBySchoolId(schoolId).stream()
-                    .map(this::toRoleResponse).collect(Collectors.toList());
+            List<Role> roles = roleRepository.findBySchoolId(schoolId);
+            List<RoleResponse> responses = mapRolesToResponses(roles);
             return new ApiResponse<>(true, "Lấy danh sách thành công", responses);
         } else {
             // typeRole là null hoặc không hợp lệ
@@ -120,8 +121,9 @@ public class RoleServiceImpl implements RoleService {
                             "Không tìm thấy school với id: " + request.getSchoolId()));
         }
 
-        Role role = mapToEntityFromResponse(request, school);
-        return new ApiResponse<>(true, "Tạo thành công", toRoleResponse(roleRepository.save(role)));
+        Role role = roleMapper.mapToEntityFromResponse(request, school);
+        Role savedRole = roleRepository.save(role);
+        return new ApiResponse<>(true, "Tạo thành công", toRoleResponse(savedRole));
     }
 
     @Override
@@ -163,8 +165,9 @@ public class RoleServiceImpl implements RoleService {
         }
 
         // Cập nhật entity từ response
-        updateEntityFromResponse(target, request, school);
-        return new ApiResponse<>(true, "Cập nhật thành công", toRoleResponse(roleRepository.save(target)));
+        roleMapper.updateEntityFromResponse(target, request, school);
+        Role updatedRole = roleRepository.save(target);
+        return new ApiResponse<>(true, "Cập nhật thành công", toRoleResponse(updatedRole));
     }
 
     @Override
@@ -218,40 +221,36 @@ public class RoleServiceImpl implements RoleService {
 
     /**
      * Helper sử dụng mapToResponse của RoleMapper
+     * Dùng cho single role (vẫn dùng countByRoleId vì chỉ có 1 role)
      */
     private RoleResponse toRoleResponse(Role role) {
-        return roleMapper.mapToResponse(role, userRepository.countByRoleId(role.getId()));
+        Long userCount = userRepository.countByRoleId(role.getId());
+        return roleMapper.mapToResponse(role, userCount);
     }
 
     /**
-     * Map từ RoleResponse -> Entity (dùng cho create)
+     * Batch mapping roles to responses với tối ưu N+1 query
+     * Lấy tất cả userCounts một lần thay vì query từng role
      */
-    private Role mapToEntityFromResponse(RoleResponse response, School school) {
-        if (response == null)
-            return null;
-        return Role.builder()
-                .roleName(response.getRoleName())
-                .typeRole(response.getTypeRole())
-                .description(response.getDescription())
-                .school(school)
-                .build();
-    }
+    private List<RoleResponse> mapRolesToResponses(List<Role> roles) {
+        if (roles == null || roles.isEmpty()) {
+            return List.of();
+        }
 
-    /**
-     * Cập nhật Entity từ RoleResponse (dùng cho update)
-     */
-    private void updateEntityFromResponse(Role role, RoleResponse response, School school) {
-        if (response == null || role == null)
-            return;
-        if (response.getRoleName() != null) {
-            role.setRoleName(response.getRoleName());
-        }
-        if (response.getTypeRole() != null) {
-            role.setTypeRole(response.getTypeRole());
-        }
-        if (response.getDescription() != null) {
-            role.setDescription(response.getDescription());
-        }
-        role.setSchool(school);
+        // Lấy tất cả role IDs
+        List<Long> roleIds = roles.stream()
+                .map(Role::getId)
+                .collect(Collectors.toList());
+
+        // Batch query để lấy userCounts cho tất cả roles cùng lúc
+        Map<Long, Long> userCountsMap = userRepository.getUserCountsByRoleIds(roleIds);
+
+        // Map roles to responses với userCount từ map
+        return roles.stream()
+                .map(role -> {
+                    Long userCount = userCountsMap.getOrDefault(role.getId(), 0L);
+                    return roleMapper.mapToResponse(role, userCount);
+                })
+                .collect(Collectors.toList());
     }
 }
