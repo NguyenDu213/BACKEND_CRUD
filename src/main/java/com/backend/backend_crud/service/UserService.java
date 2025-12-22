@@ -9,7 +9,7 @@ import java.util.List;
 
 @Service
 public interface UserService {
-    ApiResponse<List<UserResponse>> getAll(Long userId, Long schoolId);
+    ApiResponse<List<UserResponse>> getAll(Long userId);
     ApiResponse<UserResponse> createUser(UserRequest request, Long userId);
     ApiResponse<UserResponse> updateUser(UserRequest request, Long userId, Long updateBy);
     ApiResponse<UserResponse> deleteUser(Long id);

@@ -20,9 +20,8 @@ public class UserController {
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<UserResponse>>> getAll(
-            @RequestParam Long userId,
-            @RequestParam(required = false) Long schoolId){
-        return ResponseEntity.ok(userService.getAll(userId, schoolId));
+            @RequestParam Long userId){
+        return ResponseEntity.ok(userService.getAll(userId));
     }
 
     @GetMapping("/search")
@@ -43,7 +42,7 @@ public class UserController {
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<UserResponse>> updateUser(
             @PathVariable Long id,
-            @PathVariable Long updateBy,
+            @RequestParam Long updateBy,
             @Valid
             @RequestBody UserRequest request){
         return ResponseEntity.ok(userService.updateUser(request, id, updateBy));

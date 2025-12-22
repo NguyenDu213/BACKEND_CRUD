@@ -29,7 +29,7 @@ public class UserImplement implements UserService {
     private  final RoleRepository roleRepository;
 
     @Override
-    public ApiResponse<List<UserResponse>> getAll(Long userId, Long schoolId) {
+    public ApiResponse<List<UserResponse>> getAll(Long userId) {
         try {
             UserScope scope = userRepository.findScopeByUserId(userId);
             String role = userRepository.findRoleNameByUserId(userId);
@@ -42,21 +42,15 @@ public class UserImplement implements UserService {
             }else {
                 if (role.equals("SCHOOL_ADMIN")) {
                     Long idSchool = userRepository.findSchoolIdByUserId(userId);
-                    if (schoolId == null ){
+                    if (idSchool == null ){
                         return new ApiResponse<>(
                                 false,
                                 "Tài khoản không thuộc trường nào và không phải tài khoản hệ thống",
                                 null);
-                    } else if (!schoolId.equals(idSchool)) {
-                        return new ApiResponse<>(
-                                false,
-                                "Tài khoản không thuộc trường này",
-                                null);
-                    }else {
-                        List<User> listUser = userRepository.findAllSchoolUsers(schoolId);
-                        List<UserResponse> response = listUser.stream().map(UserMapper::mapToResponse).toList();
-                        return new ApiResponse<>(true, "Lấy danh sách User thành công", response);
                     }
+                    List<User> listUser = userRepository.findAllSchoolUsers(idSchool);
+                    List<UserResponse> response = listUser.stream().map(UserMapper::mapToResponse).toList();
+                    return new ApiResponse<>(true, "Lấy danh sách User thành công", response);
                 }
             }
             return new ApiResponse<>(
