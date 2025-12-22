@@ -72,14 +72,75 @@ public class RoleServiceImpl implements RoleService {
     public ApiResponse<RoleResponse> getRoleById(Long id) {
         Role role = roleRepository.findById(id)
                 .orElseThrow(() -> new AppException.ResourceNotFoundException("Không tìm thấy role với id: " + id));
+
+        User currentUser = getCurrentUser();
+
+        // Kiểm tra quyền dựa trên typeRole của role được tìm thấy
+        if (role.getTypeRole() == RoleType.PROVIDER) {
+            // B2: Check quyền Admin-Provider
+            if (currentUser.getRole().getTypeRole() != RoleType.PROVIDER) {
+                throw new AppException.ForbiddenException("Bạn không có quyền xem role hệ thống");
+            }
+        } else {
+            // B3: Check quyền Admin-School
+            if (currentUser.getRole().getTypeRole() != RoleType.SCHOOL) {
+                throw new AppException.ForbiddenException("Bạn không có quyền xem role của trường học");
+            }
+            // B4: Check schoolId có trùng với school của account không
+            if (role.getSchool() == null || currentUser.getSchool() == null
+                    || !role.getSchool().getId().equals(currentUser.getSchool().getId())) {
+                throw new AppException.ForbiddenException("Bạn không thuộc trường này");
+            }
+        }
+
         return new ApiResponse<>(true, "Lấy thông tin role thành công", toRoleResponse(role));
     }
 
     @Override
-    public ApiResponse<RoleResponse> getRoleByName(String roleName, Long schoolId) {
+    public ApiResponse<RoleResponse> getRoleByName(String roleName, RoleType typeRole, Long schoolId) {
+        User currentUser = getCurrentUser();
+
+        // B1: Kiểm tra typeRole từ request gửi về là Provider hay School
+        if (typeRole == RoleType.PROVIDER) {
+            // B2: Check quyền Admin-Provider
+            if (currentUser.getRole().getTypeRole() != RoleType.PROVIDER) {
+                throw new AppException.ForbiddenException("Bạn không có quyền");
+            }
+        } else if (typeRole == RoleType.SCHOOL) {
+            // B3: Check quyền Admin-School
+            if (currentUser.getRole().getTypeRole() != RoleType.SCHOOL) {
+                throw new AppException.ForbiddenException("Bạn không có quyền");
+            }
+            // B4: Check schoolId từ request có trùng với school của account không
+            if (schoolId == null) {
+                throw new AppException.BadRequestException("schoolId là bắt buộc khi typeRole là SCHOOL");
+            }
+            if (currentUser.getSchool() == null || !schoolId.equals(currentUser.getSchool().getId())) {
+                throw new AppException.ForbiddenException("Bạn không thuộc trường này");
+            }
+        } else {
+            throw new AppException.BadRequestException("typeRole phải là PROVIDER hoặc SCHOOL");
+        }
+
+        // B5: Truy vấn trong bảng role với roleName có từ khóa tương ứng
         Role role = roleRepository.findByRoleName(roleName)
                 .orElseThrow(
                         () -> new AppException.ResourceNotFoundException("Không tìm thấy role với tên: " + roleName));
+
+        // Validate role tìm được phải match với typeRole đã kiểm tra
+        if (role.getTypeRole() != typeRole) {
+            throw new AppException.BadRequestException(
+                    "Role tìm được không khớp với typeRole đã chỉ định. Role này thuộc type: " + role.getTypeRole());
+        }
+
+        // Nếu là SCHOOL role, validate schoolId
+        if (typeRole == RoleType.SCHOOL) {
+            if (role.getSchool() == null || !schoolId.equals(role.getSchool().getId())) {
+                throw new AppException.ForbiddenException("Role này không thuộc trường của bạn");
+            }
+        }
+
+        // B6: Trả về response
         return new ApiResponse<>(true, "Thành công", toRoleResponse(role));
     }
 

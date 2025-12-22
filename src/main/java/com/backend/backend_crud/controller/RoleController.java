@@ -54,13 +54,15 @@ public class RoleController {
 
         /**
          * Lấy role theo tên
-         * GET /api/roles/name/{roleName}?schoolId=1
+         * GET /api/roles/name/{roleName}?typeRole=PROVIDER hoặc
+         * /api/roles/name/{roleName}?typeRole=SCHOOL&schoolId=1
          */
         @GetMapping("/name/{roleName}")
         public ResponseEntity<ApiResponse<RoleResponse>> getRoleByName(
                         @PathVariable String roleName,
+                        @RequestParam(required = false) RoleType typeRole,
                         @RequestParam(required = false) Long schoolId) {
-                return ResponseEntity.ok(roleService.getRoleByName(roleName, schoolId));
+                return ResponseEntity.ok(roleService.getRoleByName(roleName, typeRole, schoolId));
         }
 
         /**

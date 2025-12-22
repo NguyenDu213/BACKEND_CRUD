@@ -11,7 +11,7 @@ public interface RoleService {
 
     ApiResponse<RoleResponse> getRoleById(Long id);
 
-    ApiResponse<RoleResponse> getRoleByName(String roleName, Long schoolId);
+    ApiResponse<RoleResponse> getRoleByName(String roleName, RoleType typeRole, Long schoolId);
 
     ApiResponse<RoleResponse> createRole(RoleResponse request, Long createBy);
 
