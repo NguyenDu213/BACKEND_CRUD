@@ -81,6 +81,28 @@ public class GlobalExceptionHandler {
                         .build());
     }
 
+
+    @ExceptionHandler(ValidationException.class)
+    public ResponseEntity<ApiResponse<Map<String, String>>> handleCustomValidation(ValidationException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                ApiResponse.<Map<String, String>>builder()
+                        .status(false)
+                        .message(ex.getMessage())
+                        .data(ex.getErrors())
+                        .build()
+        );
+    }
+
+    @ExceptionHandler(AppException.class)
+    public ResponseEntity<ApiResponse<Void>> handleAppException(AppException ex) {
+        return ResponseEntity.status(ex.getStatus()).body(
+                ApiResponse.<Void>builder()
+                        .status(false)
+                        .message(ex.getMessage())
+                        .build()
+        );
+    }
+
     /**
      * Xử lý RuntimeException (fallback)
      */
