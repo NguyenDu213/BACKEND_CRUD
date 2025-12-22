@@ -8,11 +8,16 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import com.backend.backend_crud.dto.response.ApiResponse;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.http.HttpServletResponse;
 
 import java.util.Arrays;
 import java.util.List;
@@ -27,6 +32,11 @@ public class SecurityConfig {
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+    public ObjectMapper objectMapper() {
+        return new ObjectMapper();
     }
 
     @Bean
@@ -53,8 +63,49 @@ public class SecurityConfig {
                         .anyRequest().authenticated())
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .exceptionHandling(exceptions -> exceptions
+                        .authenticationEntryPoint(authenticationEntryPoint(objectMapper()))
+                        .accessDeniedHandler(accessDeniedHandler(objectMapper())))
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
+    }
+
+    /**
+     * Xử lý lỗi 401 (Unauthorized) - khi chưa đăng nhập hoặc token không hợp lệ
+     */
+    @Bean
+    public AuthenticationEntryPoint authenticationEntryPoint(ObjectMapper objectMapper) {
+        return (request, response, authException) -> {
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setContentType("application/json;charset=UTF-8");
+
+            ApiResponse<Object> apiResponse = ApiResponse.builder()
+                    .status(false)
+                    .message("Token không hợp lệ hoặc đã hết hạn. Vui lòng đăng nhập lại.")
+                    .data(null)
+                    .build();
+
+            response.getWriter().write(objectMapper.writeValueAsString(apiResponse));
+        };
+    }
+
+    /**
+     * Xử lý lỗi 403 (Forbidden) - khi đã đăng nhập nhưng không có quyền
+     */
+    @Bean
+    public AccessDeniedHandler accessDeniedHandler(ObjectMapper objectMapper) {
+        return (request, response, accessDeniedException) -> {
+            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+            response.setContentType("application/json;charset=UTF-8");
+
+            ApiResponse<Object> apiResponse = ApiResponse.builder()
+                    .status(false)
+                    .message("Bạn không có quyền truy cập tài nguyên này")
+                    .data(null)
+                    .build();
+
+            response.getWriter().write(objectMapper.writeValueAsString(apiResponse));
+        };
     }
 }

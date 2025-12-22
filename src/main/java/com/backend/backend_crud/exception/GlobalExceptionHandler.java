@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -17,110 +18,57 @@ import java.util.Map;
 
 /**
  * Global Exception Handler để xử lý tất cả exceptions trong ứng dụng
- * Tất cả lỗi được log chi tiết và trả về response rõ ràng
  */
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-        /**
-         * Xử lý AuthenticationException
-         */
-        @ExceptionHandler(AuthenticationException.class)
-        public ResponseEntity<ApiResponse<Object>> handleAuthenticationException(AuthenticationException e) {
-                logError("Authentication Error", e, HttpStatus.UNAUTHORIZED);
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                                .body(ApiResponse.builder()
-                                                .status(false)
-                                                .message(e.getMessage())
-                                                .data(null)
-                                                .build());
+        // ========== Custom Exceptions ==========
+
+        @ExceptionHandler({ AppException.AuthenticationException.class, AppException.TokenException.class })
+        public ResponseEntity<ApiResponse<Object>> handleUnauthorizedException(Exception e) {
+                return buildErrorResponse(e, HttpStatus.UNAUTHORIZED, "Authentication Error");
         }
 
-        /**
-         * Xử lý TokenException
-         */
-        @ExceptionHandler(TokenException.class)
-        public ResponseEntity<ApiResponse<Object>> handleTokenException(TokenException e) {
-                logError("Token Error", e, HttpStatus.UNAUTHORIZED);
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                                .body(ApiResponse.builder()
-                                                .status(false)
-                                                .message(e.getMessage())
-                                                .data(null)
-                                                .build());
+        @ExceptionHandler(AppException.ResourceNotFoundException.class)
+        public ResponseEntity<ApiResponse<Object>> handleResourceNotFoundException(
+                        AppException.ResourceNotFoundException e) {
+                return buildErrorResponse(e, HttpStatus.NOT_FOUND, "Resource Not Found");
         }
 
-        /**
-         * Xử lý ResourceNotFoundException
-         */
-        @ExceptionHandler(ResourceNotFoundException.class)
-        public ResponseEntity<ApiResponse<Object>> handleResourceNotFoundException(ResourceNotFoundException e) {
-                logError("Resource Not Found", e, HttpStatus.NOT_FOUND);
-                return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                                .body(ApiResponse.builder()
-                                                .status(false)
-                                                .message(e.getMessage())
-                                                .data(null)
-                                                .build());
+        @ExceptionHandler({ AppException.ForbiddenException.class, AccessDeniedException.class })
+        public ResponseEntity<ApiResponse<Object>> handleForbiddenException(Exception e) {
+                String message = e instanceof AccessDeniedException
+                                ? "Bạn không có quyền truy cập tài nguyên này"
+                                : e.getMessage();
+                return buildErrorResponse(e, HttpStatus.FORBIDDEN, "Forbidden", message);
         }
 
-        /**
-         * Xử lý ForbiddenException
-         */
-        @ExceptionHandler(ForbiddenException.class)
-        public ResponseEntity<ApiResponse<Object>> handleForbiddenException(ForbiddenException e) {
-                logError("Forbidden", e, HttpStatus.FORBIDDEN);
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                                .body(ApiResponse.builder()
-                                                .status(false)
-                                                .message(e.getMessage())
-                                                .data(null)
-                                                .build());
+        @ExceptionHandler({ AppException.BadRequestException.class, IllegalArgumentException.class })
+        public ResponseEntity<ApiResponse<Object>> handleBadRequestException(Exception e) {
+                return buildErrorResponse(e, HttpStatus.BAD_REQUEST, "Bad Request");
         }
 
-        /**
-         * Xử lý BadRequestException
-         */
-        @ExceptionHandler(BadRequestException.class)
-        public ResponseEntity<ApiResponse<Object>> handleBadRequestException(BadRequestException e) {
-                logError("Bad Request", e, HttpStatus.BAD_REQUEST);
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                                .body(ApiResponse.builder()
-                                                .status(false)
-                                                .message(e.getMessage())
-                                                .data(null)
-                                                .build());
+        @ExceptionHandler(AppException.ConflictException.class)
+        public ResponseEntity<ApiResponse<Object>> handleConflictException(AppException.ConflictException e) {
+                return buildErrorResponse(e, HttpStatus.CONFLICT, "Conflict");
         }
 
-        /**
-         * Xử lý ConflictException
-         */
-        @ExceptionHandler(ConflictException.class)
-        public ResponseEntity<ApiResponse<Object>> handleConflictException(ConflictException e) {
-                logError("Conflict", e, HttpStatus.CONFLICT);
-                return ResponseEntity.status(HttpStatus.CONFLICT)
-                                .body(ApiResponse.builder()
-                                                .status(false)
-                                                .message(e.getMessage())
-                                                .data(null)
-                                                .build());
-        }
+        // ========== Validation & Database Exceptions ==========
 
-        /**
-         * Xử lý validation errors (MethodArgumentNotValidException)
-         */
         @ExceptionHandler(MethodArgumentNotValidException.class)
-        public ResponseEntity<ApiResponse<Map<String, String>>> handleValidationExceptions(
+        public ResponseEntity<ApiResponse<Map<String, String>>> handleValidationException(
                         MethodArgumentNotValidException e) {
                 Map<String, String> errors = new HashMap<>();
-                e.getBindingResult().getAllErrors().forEach((error) -> {
+                e.getBindingResult().getAllErrors().forEach(error -> {
                         String fieldName = ((FieldError) error).getField();
                         String errorMessage = error.getDefaultMessage();
                         errors.put(fieldName, errorMessage);
                 });
+
                 logError("Validation Error", e, HttpStatus.BAD_REQUEST);
-                log.warn("Validation errors details: {}", errors);
+                log.warn("Validation errors: {}", errors);
+
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                                 .body(ApiResponse.<Map<String, String>>builder()
                                                 .status(false)
@@ -129,29 +77,44 @@ public class GlobalExceptionHandler {
                                                 .build());
         }
 
-        /**
-         * Xử lý IllegalArgumentException
-         */
-        @ExceptionHandler(IllegalArgumentException.class)
-        public ResponseEntity<ApiResponse<Object>> handleIllegalArgumentException(IllegalArgumentException e) {
-                logError("Illegal Argument", e, HttpStatus.BAD_REQUEST);
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                                .body(ApiResponse.builder()
-                                                .status(false)
-                                                .message(e.getMessage())
-                                                .data(null)
-                                                .build());
-        }
-
-        /**
-         * Xử lý DataIntegrityViolationException (database constraint violations)
-         */
         @ExceptionHandler(DataIntegrityViolationException.class)
         public ResponseEntity<ApiResponse<Object>> handleDataIntegrityViolationException(
                         DataIntegrityViolationException e) {
-                logError("Data Integrity Violation", e, HttpStatus.CONFLICT);
-                String message = extractConstraintViolationMessage(e);
-                return ResponseEntity.status(HttpStatus.CONFLICT)
+                String message = extractConstraintMessage(e);
+                return buildErrorResponse(e, HttpStatus.CONFLICT, "Data Integrity Violation", message);
+        }
+
+        // ========== Fallback Handlers ==========
+
+        @ExceptionHandler(RuntimeException.class)
+        public ResponseEntity<ApiResponse<Object>> handleRuntimeException(RuntimeException e) {
+                return buildErrorResponse(e, HttpStatus.INTERNAL_SERVER_ERROR, "Runtime Error",
+                                "Đã xảy ra lỗi: " + e.getMessage());
+        }
+
+        @ExceptionHandler(Exception.class)
+        public ResponseEntity<ApiResponse<Object>> handleException(Exception e) {
+                return buildErrorResponse(e, HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected Error",
+                                "Đã xảy ra lỗi không mong đợi: " + e.getMessage());
+        }
+
+        // ========== Helper Methods ==========
+
+        /**
+         * Build error response với message từ exception
+         */
+        private ResponseEntity<ApiResponse<Object>> buildErrorResponse(
+                        Exception e, HttpStatus status, String errorType) {
+                return buildErrorResponse(e, status, errorType, e.getMessage());
+        }
+
+        /**
+         * Build error response với custom message
+         */
+        private ResponseEntity<ApiResponse<Object>> buildErrorResponse(
+                        Exception e, HttpStatus status, String errorType, String message) {
+                logError(errorType, e, status);
+                return ResponseEntity.status(status)
                                 .body(ApiResponse.builder()
                                                 .status(false)
                                                 .message(message)
@@ -160,61 +123,30 @@ public class GlobalExceptionHandler {
         }
 
         /**
-         * Xử lý RuntimeException (fallback)
-         */
-        @ExceptionHandler(RuntimeException.class)
-        public ResponseEntity<ApiResponse<Object>> handleRuntimeException(RuntimeException e) {
-                logError("Runtime Error", e, HttpStatus.INTERNAL_SERVER_ERROR);
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                                .body(ApiResponse.builder()
-                                                .status(false)
-                                                .message("Đã xảy ra lỗi: " + e.getMessage())
-                                                .data(null)
-                                                .build());
-        }
-
-        /**
-         * Xử lý Exception (catch-all)
-         */
-        @ExceptionHandler(Exception.class)
-        public ResponseEntity<ApiResponse<Object>> handleException(Exception e) {
-                logError("Unexpected Error", e, HttpStatus.INTERNAL_SERVER_ERROR);
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                                .body(ApiResponse.builder()
-                                                .status(false)
-                                                .message("Đã xảy ra lỗi không mong đợi: " + e.getMessage())
-                                                .data(null)
-                                                .build());
-        }
-
-        /**
-         * Helper method để log lỗi chi tiết
+         * Log lỗi chi tiết
          */
         private void logError(String errorType, Exception e, HttpStatus status) {
                 StringWriter sw = new StringWriter();
-                PrintWriter pw = new PrintWriter(sw);
-                e.printStackTrace(pw);
-                String stackTrace = sw.toString();
+                e.printStackTrace(new PrintWriter(sw));
 
                 log.error("==========================================");
                 log.error("ERROR TYPE: {}", errorType);
                 log.error("HTTP STATUS: {} ({})", status.value(), status.getReasonPhrase());
                 log.error("ERROR MESSAGE: {}", e.getMessage());
                 log.error("EXCEPTION CLASS: {}", e.getClass().getName());
-                log.error("STACK TRACE:\n{}", stackTrace);
+                log.error("STACK TRACE:\n{}", sw);
                 log.error("==========================================");
         }
 
         /**
-         * Helper method để extract message từ DataIntegrityViolationException
+         * Extract message từ DataIntegrityViolationException
          */
-        private String extractConstraintViolationMessage(DataIntegrityViolationException e) {
+        private String extractConstraintMessage(DataIntegrityViolationException e) {
                 String message = e.getMessage();
                 if (message == null) {
                         return "Vi phạm ràng buộc dữ liệu";
                 }
 
-                // Xử lý các trường hợp phổ biến
                 if (message.contains("Duplicate entry")) {
                         return "Dữ liệu đã tồn tại trong hệ thống";
                 } else if (message.contains("foreign key constraint")) {
@@ -225,7 +157,6 @@ public class GlobalExceptionHandler {
                         return "Thiếu thông tin bắt buộc";
                 }
 
-                // Trả về message gốc nếu không match pattern nào
                 return "Vi phạm ràng buộc dữ liệu: " + message;
         }
 }

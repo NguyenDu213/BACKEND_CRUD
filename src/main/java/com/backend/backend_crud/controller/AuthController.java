@@ -20,12 +20,6 @@ public class AuthController {
 
     private final AuthService authService;
 
-    /**
-     * Đăng nhập và nhận JWT token
-     *
-     * @param loginRequest Thông tin đăng nhập (email, password)
-     * @return JwtResponse chứa access token
-     */
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<JwtResponse>> login(@Valid @RequestBody LoginRequest loginRequest) {
         JwtResponse jwtResponse = authService.login(loginRequest.getEmail(), loginRequest.getPassword());
