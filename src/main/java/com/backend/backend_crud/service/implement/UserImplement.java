@@ -12,7 +12,7 @@ import com.backend.backend_crud.mapper.UserMapper;
 import com.backend.backend_crud.repository.RoleRepository;
 import com.backend.backend_crud.repository.SchoolRepository;
 import com.backend.backend_crud.repository.UserRepository;
-import com.backend.backend_crud.service.service.UserService;
+import com.backend.backend_crud.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
@@ -29,12 +29,41 @@ public class UserImplement implements UserService {
     private  final RoleRepository roleRepository;
 
     @Override
-    public ApiResponse<List<UserResponse>> getAll() {
+    public ApiResponse<List<UserResponse>> getAll(Long userId, Long schoolId) {
         try {
-            List<User> listUser = userRepository.findAll();
-            List<UserResponse> response = listUser.stream().map(UserMapper::mapToResponse).toList();
-
-            return new ApiResponse<>(true, "Lấy danh sách User thành công", response);
+            UserScope scope = userRepository.findScopeByUserId(userId);
+            String role = userRepository.findRoleNameByUserId(userId);
+            if (scope == UserScope.PROVIDER){
+                if (role.equals("SYSTEM_ADMIN")){
+                    List<User> listUser = userRepository.findAllSystemUsers();
+                    List<UserResponse> response = listUser.stream().map(UserMapper::mapToResponse).toList();
+                    return new ApiResponse<>(true, "Lấy danh sách User thành công", response);
+                }
+            }else {
+                if (role.equals("SCHOOL_ADMIN")) {
+                    Long idSchool = userRepository.findSchoolIdByUserId(userId);
+                    if (schoolId == null ){
+                        return new ApiResponse<>(
+                                false,
+                                "Tài khoản không thuộc trường nào và không phải tài khoản hệ thống",
+                                null);
+                    } else if (!schoolId.equals(idSchool)) {
+                        return new ApiResponse<>(
+                                false,
+                                "Tài khoản không thuộc trường này",
+                                null);
+                    }else {
+                        List<User> listUser = userRepository.findAllSchoolUsers(schoolId);
+                        List<UserResponse> response = listUser.stream().map(UserMapper::mapToResponse).toList();
+                        return new ApiResponse<>(true, "Lấy danh sách User thành công", response);
+                    }
+                }
+            }
+            return new ApiResponse<>(
+                    false,
+                    "Không lấy được danh sách người dùng",
+                    null
+            );
         }
         catch (Exception ex){
             return new ApiResponse<>(false, ex.getMessage(), null);
@@ -42,37 +71,74 @@ public class UserImplement implements UserService {
     }
 
     @Override
-    public ApiResponse<UserResponse> createUser(UserRequest request) {
+    public ApiResponse<UserResponse> createUser(UserRequest request, Long userId) {
         try {
-            if (userRepository.existsByEmail(request.getEmail())) {
-                throw new RuntimeException("Email đã tồn tại");
-            }
-            Role role = roleRepository.findById(request.getRoleId())
-                    .orElseThrow(() -> new RuntimeException("Role không tồn tại"));
-            School school = null;
-            if (request.getSchoolId() != null) {
-                school = schoolRepository.findById(request.getSchoolId())
-                        .orElseThrow(() -> new RuntimeException("School không tồn tại"));
-            }
+            UserScope scope = userRepository.findScopeByUserId(userId);
+            String roleName = userRepository.findRoleNameByUserId(userId);
+            if (scope == UserScope.PROVIDER) {
+                if (roleName.equals("SYSTEM_ADMIN")){
+                    if (userRepository.existsByEmail(request.getEmail())) {
+                        throw new RuntimeException("Email đã tồn tại");
+                    }
+                    Role role = roleRepository.findById(request.getRoleId())
+                            .orElseThrow(() -> new RuntimeException("Role không tồn tại"));
+                    if (!request.getScope().equals(scope)){
+                        return new ApiResponse<>(false, "Không được chọn role khác scope user", null);
+                    }
 
-            // 4. Validate scope & school
-            if (request.getScope() == UserScope.SCHOOL && school == null) {
-                throw new RuntimeException("User scope SCHOOL bắt buộc phải có schoolId");
+                    School school = null;
+                    User user = UserMapper.mapToEntity(request, school, role);
+                    user.setSchool(null);
+                    user.setPassword(SecurityConfig.passwordEncoder().encode(request.getPassword()));
+                    user.setCreateBy(userId);
+                    user.setUpdateBy(userId);
+                    user.setCreatedAt(LocalDateTime.now());
+                    userRepository.save(user);
+
+                    UserResponse response = UserMapper.mapToResponse(user);
+
+                    return new ApiResponse<>(true, "Tạo mới User thành công", response);
+                }
+            } else {
+                if (roleName.equals("SCHOOL_ADMIN")){
+                    if (userRepository.existsByEmail(request.getEmail())) {
+                        throw new RuntimeException("Email đã tồn tại");
+                    }
+                    Role role = roleRepository.findById(request.getRoleId())
+                            .orElseThrow(() -> new RuntimeException("Role không tồn tại"));
+                    if (!request.getScope().equals(scope)){
+                        return new ApiResponse<>(false, "Chọn được chọn role khác scope user", null);
+                    }
+                    School school = null;
+                    if (request.getSchoolId() != null) {
+                        school = schoolRepository.findById(request.getSchoolId())
+                                .orElseThrow(() -> new RuntimeException("School không tồn tại"));
+                    }
+                    Long idSchool = userRepository.findSchoolIdByUserId(userId);
+                    if (!request.getSchoolId().equals(idSchool)){
+                        return new ApiResponse<>(
+                                false,
+                                "Tài khoản không thuộc trường này",
+                                null);
+                    }
+
+                    User user = UserMapper.mapToEntity(request, school, role);
+                    user.setPassword(SecurityConfig.passwordEncoder().encode(request.getPassword()));
+                    user.setCreateBy(userId);
+                    user.setUpdateBy(userId);
+                    user.setCreatedAt(LocalDateTime.now());
+                    userRepository.save(user);
+
+                    UserResponse response = UserMapper.mapToResponse(user);
+
+                    return new ApiResponse<>(true, "Tạo mới User thành công", response);
+                }
             }
-
-            if (request.getScope() == UserScope.PROVIDER && school != null) {
-                throw new RuntimeException("User scope SYSTEM không được gán school");
-            }
-            User user = UserMapper.mapToEntity(request, school, role);
-            user.setPassword(SecurityConfig.passwordEncoder().encode(request.getPassword()));
-            user.setCreateBy(1L);
-            user.setUpdateBy(1L);
-            user.setCreatedAt(LocalDateTime.now());
-            userRepository.save(user);
-
-            UserResponse response = UserMapper.mapToResponse(user);
-
-            return new ApiResponse<>(true, "Tạo mới User thành công", response);
+            return new ApiResponse<>(
+                    false,
+                    "Không tạo được người dùng",
+                    null
+            );
         }
         catch (Exception ex){
             return new ApiResponse<>(false, ex.getMessage(), null);
@@ -82,11 +148,24 @@ public class UserImplement implements UserService {
     @Override
     public ApiResponse<UserResponse> updateUser(
             UserRequest request,
-            Long id) {
+            Long userId,
+            Long updateBy) {
         try {
-            User user = userRepository.findById(id)
+            User user = userRepository.findById(userId)
                     .orElseThrow(() -> new RuntimeException("User không tồn tại"));
+            boolean emailExists =
+                    userRepository.existsByEmailAndIdNot(
+                            request.getEmail(),
+                            userId
+                    );
 
+            if (emailExists) {
+                return new ApiResponse<>(
+                        false,
+                        "Email đã tồn tại",
+                        null
+                );
+            }
             Role role = roleRepository.findById(request.getRoleId())
                     .orElseThrow(() -> new RuntimeException("Role không tồn tại"));
 
@@ -107,7 +186,7 @@ public class UserImplement implements UserService {
             user.setRole(role);
             user.setSchool(school);
             user.setPassword(SecurityConfig.passwordEncoder().encode(request.getPassword()));
-            user.setUpdateBy(1L);
+            user.setUpdateBy(updateBy);
             user.setUpdatedAt(LocalDateTime.now());
 
             User savedUser = userRepository.save(user);
@@ -128,6 +207,49 @@ public class UserImplement implements UserService {
             userRepository.delete(user);
 
             return new ApiResponse<>(true, "Xóa User thành công", null);
+        }
+        catch (Exception ex){
+            return new ApiResponse<>(false, ex.getMessage(), null);
+        }
+    }
+
+    @Override
+    public ApiResponse<List<UserResponse>> searchUser(String search, Long userId) {
+        try {
+            UserScope scope = userRepository.findScopeByUserId(userId);
+            String role = userRepository.findRoleNameByUserId(userId);
+            if (scope == UserScope.PROVIDER){
+                if (role.equals("SYSTEM_ADMIN")){
+                    if (search != null) {
+                        search = search.trim();
+                    }
+                    List<User> listUser = userRepository.searchByName(search, UserScope.PROVIDER);
+                    List<UserResponse> response = listUser.stream().map(UserMapper::mapToResponse).toList();
+                    return new ApiResponse<>(true, "Lấy danh sách User thành công", response);
+                }
+            }else {
+                if (role.equals("SCHOOL_ADMIN")) {
+                    Long idSchool = userRepository.findSchoolIdByUserId(userId);
+                    if (idSchool == null ){
+                        return new ApiResponse<>(
+                                false,
+                                "Tài khoản không thuộc trường nào và không phải tài khoản hệ thống",
+                                null);
+                    }
+                    if (search != null) {
+                        search = search.trim();
+                    }
+
+                    List<User> listUser = userRepository.searchBySchoolAndName(idSchool, UserScope.SCHOOL, search);
+                        List<UserResponse> response = listUser.stream().map(UserMapper::mapToResponse).toList();
+                        return new ApiResponse<>(true, "Lấy danh sách User thành công", response);
+                }
+            }
+            return new ApiResponse<>(
+                    false,
+                    "Không lấy được danh sách người dùng",
+                    null
+            );
         }
         catch (Exception ex){
             return new ApiResponse<>(false, ex.getMessage(), null);
