@@ -1,4 +1,4 @@
-package com.backend.backend_crud.service.impl;
+package com.backend.backend_crud.service.Impl;
 
 import com.backend.backend_crud.dto.request.SchoolRequest;
 import com.backend.backend_crud.dto.request.UpdateSchoolRequest;
@@ -59,20 +59,22 @@ public class SchoolServiceImpl implements SchoolService {
         // 1. Check trùng
         validateUnique(null, request.getCode(), request.getName(), request.getEmail(), request.getHotline());
 
-        User currentUser = getCurrentUser();
-
+        // 2. Map Entity
         School school = schoolMapper.mapToEntity(request);
-        school.setCreateBy(currentUser.getId());
-        school.setUpdateBy(currentUser.getId());
 
-        // 2. Lưu School
+        User currentUser = getCurrentUser();
+        Long adminId = currentUser.getId();
+
+        school.setCreateBy(adminId);
+        school.setUpdateBy(adminId);
+
         School savedSchool = schoolRepository.save(school);
 
         // 3. Tạo Role Admin duy nhất cho trường
-        Role adminRole = createSchoolAdminRole(savedSchool);
+        Role adminRole = createSchoolAdminRole(savedSchool, adminId);
 
         // 4. Tạo User Hiệu trưởng
-        createPrincipalAccount(savedSchool, adminRole);
+        createPrincipalAccount(savedSchool, adminRole, adminId);
 
         return schoolMapper.mapToResponse(savedSchool);
     }
@@ -86,9 +88,10 @@ public class SchoolServiceImpl implements SchoolService {
         // Check trùng
         validateUnique(id, request.getCode(), request.getName(), request.getEmail(), request.getHotline());
 
-        // Map dữ liệu mới và Lưu
+        // Map dữ liệu mới
         schoolMapper.updateEntityFromRequest(school, request);
 
+        // Cập nhật người sửa đổi gần nhất
         User currentUser = getCurrentUser();
         school.setUpdateBy(currentUser.getId());
 
@@ -101,14 +104,18 @@ public class SchoolServiceImpl implements SchoolService {
         if (!schoolRepository.existsById(id)) {
             throw new AppException(404, "Không tìm thấy trường học để xóa");
         }
+
+        List<User> usersOfSchool = userRepository.findBySchoolId(id);
+        if (!usersOfSchool.isEmpty()) {
+            userRepository.deleteAll(usersOfSchool);
+        }
+
         schoolRepository.deleteById(id);
     }
 
     @Override
     public List<SchoolResponse> searchSchoolsByName(String name) {
-        List<School> schools = schoolRepository.findByNameContainingIgnoreCase(name);
-
-        return schools.stream()
+        return schoolRepository.findByNameContainingIgnoreCase(name).stream()
                 .map(schoolMapper::mapToResponse)
                 .collect(Collectors.toList());
     }
@@ -124,56 +131,35 @@ public class SchoolServiceImpl implements SchoolService {
                 .orElseThrow(() -> new AppException(404, "Không tìm thấy thông tin người dùng đang đăng nhập"));
     }
 
-    // Check trùng
     private void validateUnique(Long currentId, String code, String name, String email, String hotline) {
         Map<String, String> errors = new HashMap<>();
+        if (code != null && (currentId == null ? schoolRepository.existsByCode(code) : schoolRepository.existsByCodeAndIdNot(code, currentId)))
+            errors.put("code", "Mã trường đã tồn tại");
+        if (name != null && (currentId == null ? schoolRepository.existsByName(name) : schoolRepository.existsByNameAndIdNot(name, currentId)))
+            errors.put("name", "Tên trường đã tồn tại");
+        if (email != null && (currentId == null ? schoolRepository.existsByEmail(email) : schoolRepository.existsByEmailAndIdNot(email, currentId)))
+            errors.put("email", "Email trường đã tồn tại");
+        if (hotline != null && (currentId == null ? schoolRepository.existsByHotline(hotline) : schoolRepository.existsByHotlineAndIdNot(hotline, currentId)))
+            errors.put("hotline", "Hotline đã tồn tại");
 
-        if (code != null) {
-            boolean exists = (currentId == null)
-                    ? schoolRepository.existsByCode(code)
-                    : schoolRepository.existsByCodeAndIdNot(code, currentId);
-            if (exists) errors.put("code", "Mã trường đã tồn tại");
-        }
-
-        if (name != null) {
-            boolean exists = (currentId == null)
-                    ? schoolRepository.existsByName(name)
-                    : schoolRepository.existsByNameAndIdNot(name, currentId);
-            if (exists) errors.put("name", "Tên trường đã tồn tại");
-        }
-
-        if (email != null) {
-            boolean exists = (currentId == null)
-                    ? schoolRepository.existsByEmail(email)
-                    : schoolRepository.existsByEmailAndIdNot(email, currentId);
-            if (exists) errors.put("email", "Email trường đã tồn tại");
-        }
-
-        if (hotline != null) {
-            boolean exists = (currentId == null)
-                    ? schoolRepository.existsByHotline(hotline)
-                    : schoolRepository.existsByHotlineAndIdNot(hotline, currentId);
-            if (exists) errors.put("hotline", "Hotline đã tồn tại");
-        }
-
-        if (!errors.isEmpty()) {
-            throw new ValidationException(errors);
-        }
+        if (!errors.isEmpty()) throw new ValidationException(errors);
     }
 
-    // Tạo Role Admin
-    private Role createSchoolAdminRole(School school) {
+    private Role createSchoolAdminRole(School school, Long creatorId) {
         Role adminRole = Role.builder()
                 .roleName("SCHOOL_ADMIN")
                 .description("Quản trị viên trường học")
                 .typeRole(RoleType.SCHOOL)
                 .school(school)
                 .build();
+
+        adminRole.setCreateBy(creatorId);
+        adminRole.setUpdateBy(creatorId);
+
         return roleRepository.save(adminRole);
     }
 
-    // Tạo User Hiệu trưởng
-    private void createPrincipalAccount(School school, Role adminRole) {
+    private void createPrincipalAccount(School school, Role adminRole, Long creatorId) {
         User principal = User.builder()
                 .fullName(school.getPrincipalName())
                 .email(school.getEmail())
@@ -187,6 +173,10 @@ public class SchoolServiceImpl implements SchoolService {
                 .school(school)
                 .role(adminRole)
                 .build();
+
+        principal.setCreateBy(creatorId);
+        principal.setUpdateBy(creatorId);
+
         userRepository.save(principal);
     }
 }

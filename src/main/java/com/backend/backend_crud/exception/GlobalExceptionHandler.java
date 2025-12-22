@@ -64,7 +64,7 @@ public class GlobalExceptionHandler {
     /**
      * Xử lý validation errors (MethodArgumentNotValidException)
      */
-    @ExceptionHandler(MethodArgumentNotValidException.class)
+        @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<Map<String, String>>> handleValidationExceptions(MethodArgumentNotValidException e) {
         Map<String, String> errors = new HashMap<>();
         e.getBindingResult().getAllErrors().forEach((error) -> {
@@ -101,6 +101,16 @@ public class GlobalExceptionHandler {
                         .message(ex.getMessage())
                         .build()
         );
+    }
+
+    @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+    public ResponseEntity<ApiResponse<Object>> handleAccessDeniedException(org.springframework.security.access.AccessDeniedException e) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(ApiResponse.builder()
+                        .status(false)
+                        .message("Bạn không có quyền truy cập API này!")
+                        .data(null)
+                        .build());
     }
 
     /**
