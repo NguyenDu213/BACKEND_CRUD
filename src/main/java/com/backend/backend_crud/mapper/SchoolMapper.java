@@ -1,6 +1,7 @@
 package com.backend.backend_crud.mapper;
 
 import com.backend.backend_crud.dto.request.SchoolRequest;
+import com.backend.backend_crud.dto.request.UpdateSchoolRequest;
 import com.backend.backend_crud.dto.response.SchoolResponse;
 import com.backend.backend_crud.entity.School;
 import org.springframework.stereotype.Component;
@@ -31,5 +32,14 @@ public class SchoolMapper {
                 .createdAt(school.getCreatedAt())
                 .updatedAt(school.getUpdatedAt())
                 .build();
+    }
+
+    public void updateEntityFromRequest(School school, UpdateSchoolRequest request) {
+        if (request.getCode() != null) school.setCode(request.getCode());
+        if (request.getName() != null) school.setName(request.getName());
+        if (request.getEmail() != null) school.setEmail(request.getEmail());
+        if (request.getHotline() != null) school.setHotline(request.getHotline());
+        if (request.getAddress() != null) school.setAddress(request.getAddress());
+        if (request.getPrincipalName() != null) school.setPrincipalName(request.getPrincipalName());
     }
 }
