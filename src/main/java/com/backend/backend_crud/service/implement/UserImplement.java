@@ -168,6 +168,44 @@ public class UserImplement implements UserService {
                 school = schoolRepository.findById(request.getSchoolId())
                         .orElseThrow(() -> new RuntimeException("School không tồn tại"));
             }
+            UserScope scope = userRepository.findScopeByUserId(updateBy);
+            String roleName = userRepository.findRoleNameByUserId(updateBy);
+            if (scope == UserScope.PROVIDER) {
+                if (roleName.equals("SYSTEM_ADMIN")) {
+
+                    if (!request.getScope().equals(scope)) {
+                        return new ApiResponse<>(
+                                false,
+                                "Không được chọn role khác scope user",
+                                null
+                        );
+                    }
+
+                    user.setSchool(null);
+                }
+            } else {
+                if (roleName.equals("SCHOOL_ADMIN")) {
+
+                    if (!request.getScope().equals(scope)) {
+                        return new ApiResponse<>(
+                                false,
+                                "Chọn được chọn role khác scope user",
+                                null
+                        );
+                    }
+
+                    Long idSchool = userRepository.findSchoolIdByUserId(updateBy);
+                    if (!request.getSchoolId().equals(idSchool)) {
+                        return new ApiResponse<>(
+                                false,
+                                "Tài khoản không thuộc trường này",
+                                null
+                        );
+                    }
+
+                    user.setSchool(school);
+                }
+            }
 
             user.setFullName(request.getFullName());
             user.setGender(request.getGender());
@@ -178,7 +216,6 @@ public class UserImplement implements UserService {
             user.setScope(request.getScope());
             user.setIsActive(request.getIsActive());
             user.setRole(role);
-            user.setSchool(school);
             user.setPassword(SecurityConfig.passwordEncoder().encode(request.getPassword()));
             user.setUpdateBy(updateBy);
             user.setUpdatedAt(LocalDateTime.now());
