@@ -1,6 +1,7 @@
 package com.backend.backend_crud.service.implement;
 
 import com.backend.backend_crud.config.SecurityConfig;
+import com.backend.backend_crud.dto.request.UpdateUserRequest;
 import com.backend.backend_crud.dto.request.UserRequest;
 import com.backend.backend_crud.dto.response.ApiResponse;
 import com.backend.backend_crud.dto.response.UserResponse;
@@ -77,7 +78,7 @@ public class UserImplement implements UserService {
                     Role role = roleRepository.findById(request.getRoleId())
                             .orElseThrow(() -> new RuntimeException("Role không tồn tại"));
                     if (!request.getScope().equals(scope)){
-                        return new ApiResponse<>(false, "Không được chọn role khác scope user", null);
+                        return new ApiResponse<>(false, "Không được chọn role khác scope người dùng hiện tại", null);
                     }
 
                     School school = null;
@@ -101,7 +102,7 @@ public class UserImplement implements UserService {
                     Role role = roleRepository.findById(request.getRoleId())
                             .orElseThrow(() -> new RuntimeException("Role không tồn tại"));
                     if (!request.getScope().equals(scope)){
-                        return new ApiResponse<>(false, "Chọn được chọn role khác scope user", null);
+                        return new ApiResponse<>(false, "Chọn được chọn role khác scope người dùng hiện tại", null);
                     }
                     School school = null;
                     if (request.getSchoolId() != null) {
@@ -141,7 +142,7 @@ public class UserImplement implements UserService {
 
     @Override
     public ApiResponse<UserResponse> updateUser(
-            UserRequest request,
+            UpdateUserRequest request,
             Long userId,
             Long updateBy) {
         try {
@@ -152,7 +153,6 @@ public class UserImplement implements UserService {
                             request.getEmail(),
                             userId
                     );
-
             if (emailExists) {
                 return new ApiResponse<>(
                         false,
@@ -176,7 +176,7 @@ public class UserImplement implements UserService {
                     if (!request.getScope().equals(scope)) {
                         return new ApiResponse<>(
                                 false,
-                                "Không được chọn role khác scope user",
+                                "Không được chọn role khác scope của người dùng hiện tại",
                                 null
                         );
                     }
@@ -189,7 +189,7 @@ public class UserImplement implements UserService {
                     if (!request.getScope().equals(scope)) {
                         return new ApiResponse<>(
                                 false,
-                                "Chọn được chọn role khác scope user",
+                                "Không được chọn role khác scope người dùng hiện tại",
                                 null
                         );
                     }
@@ -206,17 +206,30 @@ public class UserImplement implements UserService {
                     user.setSchool(school);
                 }
             }
+            String emailToUpdate;
+            if (request.getEmail().isBlank()){
+                emailToUpdate = user.getEmail();
+            } else{
+                emailToUpdate = request.getEmail();
+            }
+
+            String passwordUpdate;
+            if (!request.getEmail().isBlank()){
+                passwordUpdate = user.getPassword();
+            } else{
+                passwordUpdate = request.getPassword();
+            }
 
             user.setFullName(request.getFullName());
             user.setGender(request.getGender());
             user.setBirthYear(request.getBirthYear());
             user.setAddress(request.getAddress());
             user.setPhoneNumber(request.getPhoneNumber());
-            user.setEmail(request.getEmail());
+            user.setEmail(emailToUpdate);
             user.setScope(request.getScope());
             user.setIsActive(request.getIsActive());
             user.setRole(role);
-            user.setPassword(SecurityConfig.passwordEncoder().encode(request.getPassword()));
+            user.setPassword(SecurityConfig.passwordEncoder().encode(passwordUpdate));
             user.setUpdateBy(updateBy);
             user.setUpdatedAt(LocalDateTime.now());
 

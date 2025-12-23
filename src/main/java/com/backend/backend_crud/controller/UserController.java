@@ -1,5 +1,6 @@
 package com.backend.backend_crud.controller;
 
+import com.backend.backend_crud.dto.request.UpdateUserRequest;
 import com.backend.backend_crud.dto.request.UserRequest;
 import com.backend.backend_crud.dto.response.ApiResponse;
 import com.backend.backend_crud.dto.response.UserResponse;
@@ -49,7 +50,7 @@ public class UserController {
     public ResponseEntity<ApiResponse<UserResponse>> updateUser(
             @PathVariable Long id,
             @Valid
-            @RequestBody UserRequest request){
+            @RequestBody UpdateUserRequest request){
         Long currentUserId = getCurrentUserId();
 
         return ResponseEntity.ok(userService.updateUser(request, id, currentUserId));
