@@ -12,7 +12,7 @@ import com.backend.backend_crud.repository.RoleRepository;
 import com.backend.backend_crud.repository.SchoolRepository;
 import com.backend.backend_crud.repository.UserRepository;
 import com.backend.backend_crud.service.JwtService;
-import com.backend.backend_crud.service.service.RoleService;
+import com.backend.backend_crud.service.RoleService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;

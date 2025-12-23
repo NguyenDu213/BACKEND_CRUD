@@ -8,7 +8,7 @@ import com.backend.backend_crud.entity.RoleType;
 import com.backend.backend_crud.exception.AppException;
 import com.backend.backend_crud.mapper.RoleMapper;
 import com.backend.backend_crud.service.JwtService;
-import com.backend.backend_crud.service.service.RoleService;
+import com.backend.backend_crud.service.RoleService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

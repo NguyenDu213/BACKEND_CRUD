@@ -77,6 +77,17 @@ public class GlobalExceptionHandler {
                                                 .build());
         }
 
+        @ExceptionHandler(ValidationException.class)
+        public ResponseEntity<ApiResponse<Map<String, String>>> handleCustomValidation(ValidationException ex) {
+                logError("Custom Validation Error", ex, HttpStatus.BAD_REQUEST);
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                                ApiResponse.<Map<String, String>>builder()
+                                                .status(false)
+                                                .message(ex.getMessage())
+                                                .data(ex.getErrors())
+                                                .build());
+        }
+
         @ExceptionHandler(DataIntegrityViolationException.class)
         public ResponseEntity<ApiResponse<Object>> handleDataIntegrityViolationException(
                         DataIntegrityViolationException e) {

@@ -1,4 +1,4 @@
-package com.backend.backend_crud.service.service;
+package com.backend.backend_crud.service;
 
 import com.backend.backend_crud.dto.response.ApiResponse;
 import com.backend.backend_crud.dto.response.RoleResponse;

@@ -12,7 +12,7 @@ import java.util.stream.Collectors;
 
 public interface UserRepository extends JpaRepository<User, Long> {
     Long countByRoleId(Long roleId);
-
+    List<User> findBySchoolId(Long schoolId);
     Optional<User> findByEmail(String email);
 
     /**
