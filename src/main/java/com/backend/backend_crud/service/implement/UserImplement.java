@@ -112,7 +112,7 @@ public class UserImplement implements UserService {
                                 .orElseThrow(() -> new RuntimeException("School không tồn tại"));
                     }
                     Long idSchool = userRepository.findSchoolIdByUserId(userId);
-                    if (!request.getSchoolId().equals(idSchool)){
+                    if (request.getSchoolId() == null || !request.getSchoolId().equals(idSchool)){
                         return new ApiResponse<>(
                                 false,
                                 "Tài khoản không thuộc trường này",

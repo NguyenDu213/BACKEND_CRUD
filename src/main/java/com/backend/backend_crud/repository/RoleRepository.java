@@ -25,7 +25,8 @@ public interface RoleRepository extends JpaRepository<Role, Long> {
         List<Role> findBySchoolIsNull();
 
         /**
-         * Tìm roles theo typeRole và school = null (system-level roles của một loại cụ thể)
+         * Tìm roles theo typeRole và school = null (system-level roles của một loại cụ
+         * thể)
          */
         List<Role> findByTypeRoleAndSchoolIsNull(RoleType typeRole);
 
@@ -43,4 +44,18 @@ public interface RoleRepository extends JpaRepository<Role, Long> {
          * Kiểm tra roleName đã tồn tại chưa (trừ id hiện tại)
          */
         boolean existsByRoleNameAndIdNot(String roleName, Long id);
+
+        /**
+         * Kiểm tra roleName đã tồn tại chưa với cùng typeRole và schoolId
+         * Với PROVIDER: schoolId = null
+         * Với SCHOOL: schoolId phải match
+         */
+        boolean existsByRoleNameAndTypeRoleAndSchoolId(String roleName, RoleType typeRole, Long schoolId);
+
+        /**
+         * Kiểm tra roleName đã tồn tại chưa với cùng typeRole và schoolId (trừ id hiện
+         * tại)
+         */
+        boolean existsByRoleNameAndTypeRoleAndSchoolIdAndIdNot(String roleName, RoleType typeRole, Long schoolId,
+                        Long id);
 }

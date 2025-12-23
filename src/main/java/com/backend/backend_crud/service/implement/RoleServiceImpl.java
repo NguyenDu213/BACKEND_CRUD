@@ -7,6 +7,7 @@ import com.backend.backend_crud.entity.RoleType;
 import com.backend.backend_crud.entity.School;
 import com.backend.backend_crud.entity.User;
 import com.backend.backend_crud.exception.AppException;
+import com.backend.backend_crud.exception.ValidationException;
 import com.backend.backend_crud.mapper.RoleMapper;
 import com.backend.backend_crud.repository.RoleRepository;
 import com.backend.backend_crud.repository.SchoolRepository;
@@ -18,6 +19,7 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -45,7 +47,7 @@ public class RoleServiceImpl implements RoleService {
             // Trả về tất cả role hệ thống (schoolId is null)
             List<Role> roles = roleRepository.findBySchoolIsNull();
             List<RoleResponse> responses = mapRolesToResponses(roles);
-            return new ApiResponse<>(true, "Lấy danh sách thành công", responses);
+            return new ApiResponse<>(true, "Lấy danh sách role hệ thống thành công", responses);
         } else if (typeRole == RoleType.SCHOOL) {
             // Nếu là PROVIDER user, cho phép xem SCHOOL_ADMIN roles (system-level SCHOOL
             // roles)
@@ -54,7 +56,7 @@ public class RoleServiceImpl implements RoleService {
                 // Để xem tài khoản admin trường trong danh sách tài khoản hệ thống
                 List<Role> roles = roleRepository.findByTypeRoleAndSchoolIsNull(RoleType.SCHOOL);
                 List<RoleResponse> responses = mapRolesToResponses(roles);
-                return new ApiResponse<>(true, "Lấy danh sách thành công", responses);
+                return new ApiResponse<>(true, "Lấy danh sách role admin trường học thành công", responses);
             }
             // Check quyền Admin-School
             if (currentUser.getRole().getTypeRole() != RoleType.SCHOOL) {
@@ -70,7 +72,7 @@ public class RoleServiceImpl implements RoleService {
             // Lấy role theo schoolId
             List<Role> roles = roleRepository.findBySchoolId(schoolId);
             List<RoleResponse> responses = mapRolesToResponses(roles);
-            return new ApiResponse<>(true, "Lấy danh sách thành công", responses);
+            return new ApiResponse<>(true, "Lấy danh sách role thành công", responses);
         } else {
             // typeRole là null hoặc không hợp lệ
             throw new AppException.BadRequestException("typeRole phải là PROVIDER hoặc SCHOOL");
@@ -177,11 +179,8 @@ public class RoleServiceImpl implements RoleService {
             }
         }
 
-        // Kiểm tra tên role đã tồn tại
-        if (roleRepository.existsByRoleName(request.getRoleName())) {
-            throw new AppException.ConflictException(
-                    "Tên role '" + request.getRoleName() + "' đã tồn tại trong hệ thống");
-        }
+        // Validate unique constraints
+        validateUnique(null, request.getRoleName(), request.getTypeRole(), request.getSchoolId());
 
         // Lấy school nếu có
         School school = null;
@@ -223,10 +222,9 @@ public class RoleServiceImpl implements RoleService {
             }
         }
 
-        // Kiểm tra tên role đã tồn tại (trừ chính nó)
-        if (request.getRoleName() != null && roleRepository.existsByRoleNameAndIdNot(request.getRoleName(), id)) {
-            throw new AppException.ConflictException(
-                    "Tên role '" + request.getRoleName() + "' đã tồn tại trong hệ thống");
+        // Validate unique constraints (trừ chính nó)
+        if (request.getRoleName() != null) {
+            validateUnique(id, request.getRoleName(), request.getTypeRole(), request.getSchoolId());
         }
 
         // Lấy school nếu có
@@ -327,5 +325,46 @@ public class RoleServiceImpl implements RoleService {
                     return roleMapper.mapToResponse(role, userCount);
                 })
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Validate unique constraints cho role
+     * Chỉ check trùng khi có cùng typeRole và cùng schoolId
+     * - PROVIDER roles: schoolId phải là null
+     * - SCHOOL roles: schoolId phải match
+     */
+    private void validateUnique(Long currentId, String roleName, RoleType typeRole, Long schoolId) {
+        Map<String, String> errors = new HashMap<>();
+
+        // Đảm bảo PROVIDER roles có schoolId = null
+        Long actualSchoolId = (typeRole == RoleType.PROVIDER) ? null : schoolId;
+
+        // Kiểm tra schoolId nếu typeRole là SCHOOL
+        if (typeRole == RoleType.SCHOOL && actualSchoolId == null) {
+            errors.put("schoolId", "schoolId là bắt buộc khi typeRole là SCHOOL");
+        }
+
+        if (roleName != null && typeRole != null) {
+            // Kiểm tra tên role đã tồn tại với cùng typeRole và schoolId
+            boolean exists;
+            if (currentId == null) {
+                exists = roleRepository.existsByRoleNameAndTypeRoleAndSchoolId(roleName, typeRole, actualSchoolId);
+            } else {
+                exists = roleRepository.existsByRoleNameAndTypeRoleAndSchoolIdAndIdNot(roleName, typeRole,
+                        actualSchoolId, currentId);
+            }
+
+            if (exists) {
+                if (typeRole == RoleType.PROVIDER) {
+                    errors.put("roleName", "Tên role đã tồn tại trong hệ thống (PROVIDER)");
+                } else {
+                    errors.put("roleName", "Tên role đã tồn tại trong trường học này");
+                }
+            }
+        }
+
+        if (!errors.isEmpty()) {
+            throw new ValidationException(errors);
+        }
     }
 }
