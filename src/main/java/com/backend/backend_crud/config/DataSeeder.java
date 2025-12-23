@@ -234,9 +234,9 @@ public class DataSeeder implements CommandLineRunner {
             // School 1 Users
             School school1 = schoolRepository.findByCode("TH001").orElse(null);
             if (school1 != null) {
-                Role schoolAdminRole1 = roleRepository.findByRoleNameAndSchoolId("SCHOOL_ADMIN", school1.getId()).orElse(null);
-                Role teacherRole1 = roleRepository.findByRoleNameAndSchoolId("TEACHER", school1.getId()).orElse(null);
-                Role studentRole1 = roleRepository.findByRoleNameAndSchoolId("STUDENT", school1.getId()).orElse(null);
+                Role schoolAdminRole1 = roleRepository.findByRoleNameAndSchool("SCHOOL_ADMIN", school1).orElse(null);
+                Role teacherRole1 = roleRepository.findByRoleNameAndSchool("TEACHER", school1).orElse(null);
+                Role studentRole1 = roleRepository.findByRoleNameAndSchool("STUDENT", school1).orElse(null);
 
                 if (schoolAdminRole1 != null) {
                     User schoolAdmin1 = User.builder()
@@ -299,9 +299,9 @@ public class DataSeeder implements CommandLineRunner {
             // School 2 Users
             School school2 = schoolRepository.findByCode("THCS002").orElse(null);
             if (school2 != null) {
-                Role schoolAdminRole2 = roleRepository.findByRoleNameAndSchoolId("SCHOOL_ADMIN", school2.getId()).orElse(null);
-                Role teacherRole2 = roleRepository.findByRoleNameAndSchoolId("TEACHER", school2.getId()).orElse(null);
-                Role studentRole2 = roleRepository.findByRoleNameAndSchoolId("STUDENT", school2.getId()).orElse(null);
+                Role schoolAdminRole2 = roleRepository.findByRoleNameAndSchool("SCHOOL_ADMIN", school2).orElse(null);
+                Role teacherRole2 = roleRepository.findByRoleNameAndSchool("TEACHER", school2).orElse(null);
+                Role studentRole2 = roleRepository.findByRoleNameAndSchool("STUDENT", school2).orElse(null);
 
                 if (schoolAdminRole2 != null) {
                     User schoolAdmin2 = User.builder()
