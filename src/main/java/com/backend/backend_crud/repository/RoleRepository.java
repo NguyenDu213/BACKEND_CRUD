@@ -1,6 +1,7 @@
 package com.backend.backend_crud.repository;
 
 import com.backend.backend_crud.entity.Role;
+import com.backend.backend_crud.entity.RoleType;
 import com.backend.backend_crud.entity.School;
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -22,6 +23,11 @@ public interface RoleRepository extends JpaRepository<Role, Long> {
          * Tìm roles có school = null (system roles)
          */
         List<Role> findBySchoolIsNull();
+
+        /**
+         * Tìm roles theo typeRole và school = null (system-level roles của một loại cụ thể)
+         */
+        List<Role> findByTypeRoleAndSchoolIsNull(RoleType typeRole);
 
         /**
          * Tìm roles theo schoolId

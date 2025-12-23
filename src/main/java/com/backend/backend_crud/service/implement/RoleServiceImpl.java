@@ -47,6 +47,15 @@ public class RoleServiceImpl implements RoleService {
             List<RoleResponse> responses = mapRolesToResponses(roles);
             return new ApiResponse<>(true, "Lấy danh sách thành công", responses);
         } else if (typeRole == RoleType.SCHOOL) {
+            // Nếu là PROVIDER user, cho phép xem SCHOOL_ADMIN roles (system-level SCHOOL
+            // roles)
+            if (currentUser.getRole().getTypeRole() == RoleType.PROVIDER) {
+                // PROVIDER users có thể xem SCHOOL_ADMIN roles (roles với schoolId = null)
+                // Để xem tài khoản admin trường trong danh sách tài khoản hệ thống
+                List<Role> roles = roleRepository.findByTypeRoleAndSchoolIsNull(RoleType.SCHOOL);
+                List<RoleResponse> responses = mapRolesToResponses(roles);
+                return new ApiResponse<>(true, "Lấy danh sách thành công", responses);
+            }
             // Check quyền Admin-School
             if (currentUser.getRole().getTypeRole() != RoleType.SCHOOL) {
                 throw new AppException.ForbiddenException("Bạn không có quyền xem role của trường học");
@@ -183,6 +192,9 @@ public class RoleServiceImpl implements RoleService {
         }
 
         Role role = roleMapper.mapToEntityFromResponse(request, school);
+        // Set createBy và updateBy
+        role.setCreateBy(createBy);
+        role.setUpdateBy(createBy);
         Role savedRole = roleRepository.save(role);
         return new ApiResponse<>(true, "Tạo thành công", toRoleResponse(savedRole));
     }
@@ -227,6 +239,8 @@ public class RoleServiceImpl implements RoleService {
 
         // Cập nhật entity từ response
         roleMapper.updateEntityFromResponse(target, request, school);
+        // Set updateBy
+        target.setUpdateBy(updateBy);
         Role updatedRole = roleRepository.save(target);
         return new ApiResponse<>(true, "Cập nhật thành công", toRoleResponse(updatedRole));
     }
