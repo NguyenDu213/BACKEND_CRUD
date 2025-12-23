@@ -5,9 +5,12 @@ import com.backend.backend_crud.dto.request.UserRequest;
 import com.backend.backend_crud.dto.response.ApiResponse;
 import com.backend.backend_crud.dto.response.UserResponse;
 import com.backend.backend_crud.entity.Role;
+import com.backend.backend_crud.entity.RoleType;
 import com.backend.backend_crud.entity.School;
 import com.backend.backend_crud.entity.User;
 import com.backend.backend_crud.entity.UserScope;
+import com.backend.backend_crud.exception.AppException;
+import jakarta.transaction.Transactional;
 import com.backend.backend_crud.mapper.UserMapper;
 import com.backend.backend_crud.repository.RoleRepository;
 import com.backend.backend_crud.repository.SchoolRepository;
@@ -285,5 +288,107 @@ public class UserImplement implements UserService {
         catch (Exception ex){
             return new ApiResponse<>(false, ex.getMessage(), null);
         }
+    }
+
+    @Override
+    public ApiResponse<List<UserResponse>> getUsersByRoleId(Long roleId, Long currentUserId) {
+        // Kiểm tra role có tồn tại không
+        Role role = roleRepository.findById(roleId)
+                .orElseThrow(() -> new AppException.ResourceNotFoundException("Không tìm thấy role với id: " + roleId));
+        
+        // Kiểm tra quyền
+        User currentUser = userRepository.findById(currentUserId)
+                .orElseThrow(() -> new AppException.ResourceNotFoundException("Không tìm thấy user với id: " + currentUserId));
+        
+        if (role.getTypeRole() == RoleType.PROVIDER) {
+            if (currentUser.getRole().getTypeRole() != RoleType.PROVIDER) {
+                throw new AppException.ForbiddenException("Bạn không có quyền xem users của role hệ thống");
+            }
+        } else {
+            if (currentUser.getRole().getTypeRole() != RoleType.SCHOOL) {
+                throw new AppException.ForbiddenException("Bạn không có quyền xem users của role trường học");
+            }
+            if (role.getSchool() != null && currentUser.getSchool() != null
+                    && !role.getSchool().getId().equals(currentUser.getSchool().getId())) {
+                throw new AppException.ForbiddenException("Bạn không có quyền xem users của role trường khác");
+            }
+        }
+        
+        // Lấy danh sách users theo roleId
+        List<User> users = userRepository.findByRoleId(roleId);
+        List<UserResponse> response = users.stream().map(UserMapper::mapToResponse).toList();
+        return new ApiResponse<>(true, "Lấy danh sách users thành công", response);
+    }
+
+    @Override
+    public ApiResponse<Boolean> isRoleInUse(Long roleId) {
+        try {
+            Long count = userRepository.countByRoleId(roleId);
+            return new ApiResponse<>(true, "Kiểm tra thành công", count > 0);
+        } catch (Exception ex) {
+            return new ApiResponse<>(false, ex.getMessage(), false);
+        }
+    }
+
+    @Override
+    @Transactional
+    public ApiResponse<String> reassignRole(Long oldRoleId, Long newRoleId, Long currentUserId) {
+        // Kiểm tra roles có tồn tại không
+        Role oldRole = roleRepository.findById(oldRoleId)
+                .orElseThrow(() -> new AppException.ResourceNotFoundException("Không tìm thấy role cũ với id: " + oldRoleId));
+        Role newRole = roleRepository.findById(newRoleId)
+                .orElseThrow(() -> new AppException.ResourceNotFoundException("Không tìm thấy role mới với id: " + newRoleId));
+        
+        // Kiểm tra quyền
+        User currentUser = userRepository.findById(currentUserId)
+                .orElseThrow(() -> new AppException.ResourceNotFoundException("Không tìm thấy user với id: " + currentUserId));
+        
+        // Kiểm tra quyền với oldRole
+        if (oldRole.getTypeRole() == RoleType.PROVIDER) {
+            if (currentUser.getRole().getTypeRole() != RoleType.PROVIDER) {
+                throw new AppException.ForbiddenException("Bạn không có quyền gán lại role hệ thống");
+            }
+        } else {
+            if (currentUser.getRole().getTypeRole() != RoleType.SCHOOL) {
+                throw new AppException.ForbiddenException("Bạn không có quyền gán lại role trường học");
+            }
+            if (oldRole.getSchool() != null && currentUser.getSchool() != null
+                    && !oldRole.getSchool().getId().equals(currentUser.getSchool().getId())) {
+                throw new AppException.ForbiddenException("Bạn không có quyền gán lại role của trường khác");
+            }
+        }
+        
+        // Kiểm tra newRole phải cùng typeRole với oldRole
+        if (!oldRole.getTypeRole().equals(newRole.getTypeRole())) {
+            throw new AppException.BadRequestException("Role mới phải cùng loại với role cũ");
+        }
+        
+        // Kiểm tra nếu là SCHOOL role, phải cùng school
+        if (oldRole.getTypeRole() == RoleType.SCHOOL) {
+            if (oldRole.getSchool() != null && newRole.getSchool() != null
+                    && !oldRole.getSchool().getId().equals(newRole.getSchool().getId())) {
+                throw new AppException.BadRequestException("Role mới phải cùng trường với role cũ");
+            }
+        }
+        
+        // Lấy danh sách users đang dùng oldRole
+        List<User> users = userRepository.findByRoleId(oldRoleId);
+        if (users.isEmpty()) {
+            return new ApiResponse<>(true, "Không có user nào đang sử dụng role này", "0");
+        }
+        
+        // Gán role mới cho tất cả users
+        int updatedCount = 0;
+        for (User user : users) {
+            user.setRole(newRole);
+            user.setUpdateBy(currentUserId);
+            user.setUpdatedAt(LocalDateTime.now());
+            userRepository.save(user);
+            updatedCount++;
+        }
+        
+        return new ApiResponse<>(true, 
+                "Đã gán role mới cho " + updatedCount + " người dùng", 
+                String.valueOf(updatedCount));
     }
 }
