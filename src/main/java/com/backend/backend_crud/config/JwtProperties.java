@@ -12,7 +12,7 @@ public class JwtProperties {
      * Secret key để ký JWT tokens
      * Nên là một chuỗi dài, ngẫu nhiên và bảo mật
      */
-    private String secret = "your-secret-key-change-this-in-production-to-a-long-random-secure-string-at-least-256-bits";
+    private String secret = "your-secret-key-change-this-in-production...";
 
     private Long expiration = 86400000L;
 }
