@@ -16,6 +16,7 @@ import java.util.stream.Collectors;
 public interface UserRepository extends JpaRepository<User, Long> {
     Long countByRoleId(Long roleId);
     List<User> findBySchoolId(Long schoolId);
+    List<User> findByRoleId(Long roleId);
     Optional<User> findByEmail(String email);
 
     /**

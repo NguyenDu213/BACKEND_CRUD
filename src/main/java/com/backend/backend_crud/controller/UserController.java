@@ -24,14 +24,14 @@ public class UserController {
     private final HttpServletRequest httpServletRequest;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<UserResponse>>> getAll(){
+    public ResponseEntity<ApiResponse<List<UserResponse>>> getAll() {
         Long currentUserId = getCurrentUserId();
 
         return ResponseEntity.ok(userService.getAll(currentUserId));
     }
 
     @GetMapping("/search")
-    public ResponseEntity<ApiResponse<List<UserResponse>>> searchUsers(@RequestParam(required = false) String keyword){
+    public ResponseEntity<ApiResponse<List<UserResponse>>> searchUsers(@RequestParam(required = false) String keyword) {
         Long currentUserId = getCurrentUserId();
 
         return ResponseEntity.ok(userService.searchUser(keyword, currentUserId));
@@ -39,26 +39,57 @@ public class UserController {
 
     @PostMapping
     public ResponseEntity<ApiResponse<UserResponse>> createUser(
-            @Valid
-            @RequestBody UserRequest request){
+            @Valid @RequestBody UserRequest request) {
         Long currentUserId = getCurrentUserId();
 
         return ResponseEntity.ok(userService.createUser(request, currentUserId));
     }
+
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<UserResponse>> updateUser(
             @PathVariable Long id,
-            @Valid
-            @RequestBody UserRequest request){
+            @Valid @RequestBody UserRequest request) {
         Long currentUserId = getCurrentUserId();
 
         return ResponseEntity.ok(userService.updateUser(request, id, currentUserId));
     }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<UserResponse>> deleteUser(
-            @Valid
-            @PathVariable Long id){
+            @Valid @PathVariable Long id) {
         return ResponseEntity.ok(userService.deleteUser(id));
+    }
+
+    /**
+     * Lấy danh sách users theo roleId
+     * GET /api/users/by-role/{roleId}
+     */
+    @GetMapping("/by-role/{roleId}")
+    public ResponseEntity<ApiResponse<List<UserResponse>>> getUsersByRoleId(@PathVariable Long roleId) {
+        Long currentUserId = getCurrentUserId();
+        return ResponseEntity.ok(userService.getUsersByRoleId(roleId, currentUserId));
+    }
+
+    /**
+     * Kiểm tra role có đang được sử dụng không
+     * GET /api/users/role-in-use/{roleId}
+     */
+    @GetMapping("/role-in-use/{roleId}")
+    public ResponseEntity<ApiResponse<Boolean>> isRoleInUse(@PathVariable Long roleId) {
+        getCurrentUserId();
+        return ResponseEntity.ok(userService.isRoleInUse(roleId));
+    }
+
+    /**
+     * Gán role mới cho tất cả users đang dùng role cũ
+     * PUT /api/users/reassign-role?oldRoleId={oldRoleId}&newRoleId={newRoleId}
+     */
+    @PutMapping("/reassign-role")
+    public ResponseEntity<ApiResponse<String>> reassignRole(
+            @RequestParam Long oldRoleId,
+            @RequestParam Long newRoleId) {
+        Long currentUserId = getCurrentUserId();
+        return ResponseEntity.ok(userService.reassignRole(oldRoleId, newRoleId, currentUserId));
     }
 
     private Long getCurrentUserId() {
