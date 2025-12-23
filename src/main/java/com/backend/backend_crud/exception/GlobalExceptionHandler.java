@@ -64,7 +64,7 @@ public class GlobalExceptionHandler {
     /**
      * Xử lý validation errors (MethodArgumentNotValidException)
      */
-    @ExceptionHandler(MethodArgumentNotValidException.class)
+        @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<Map<String, String>>> handleValidationExceptions(MethodArgumentNotValidException e) {
         Map<String, String> errors = new HashMap<>();
         e.getBindingResult().getAllErrors().forEach((error) -> {
@@ -78,6 +78,38 @@ public class GlobalExceptionHandler {
                         .status(false)
                         .message("Dữ liệu không hợp lệ")
                         .data(errors)
+                        .build());
+    }
+
+
+    @ExceptionHandler(ValidationException.class)
+    public ResponseEntity<ApiResponse<Map<String, String>>> handleCustomValidation(ValidationException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                ApiResponse.<Map<String, String>>builder()
+                        .status(false)
+                        .message(ex.getMessage())
+                        .data(ex.getErrors())
+                        .build()
+        );
+    }
+
+    @ExceptionHandler(AppException.class)
+    public ResponseEntity<ApiResponse<Void>> handleAppException(AppException ex) {
+        return ResponseEntity.status(ex.getStatus()).body(
+                ApiResponse.<Void>builder()
+                        .status(false)
+                        .message(ex.getMessage())
+                        .build()
+        );
+    }
+
+    @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+    public ResponseEntity<ApiResponse<Object>> handleAccessDeniedException(org.springframework.security.access.AccessDeniedException e) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(ApiResponse.builder()
+                        .status(false)
+                        .message("Bạn không có quyền truy cập API này!")
+                        .data(null)
                         .build());
     }
 
