@@ -1,4 +1,4 @@
-package com.backend.backend_crud.service.Impl;
+package com.backend.backend_crud.service.implement;
 
 import com.backend.backend_crud.dto.request.SchoolRequest;
 import com.backend.backend_crud.dto.request.UpdateSchoolRequest;

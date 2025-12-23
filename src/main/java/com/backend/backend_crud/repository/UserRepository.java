@@ -47,10 +47,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
                             return 0L;
                         }));
     }
-import java.util.Optional;
-
-public interface UserRepository extends JpaRepository<User, Long> {
-    Long countByRoleId(Long roleId);
 
     boolean existsByEmail(String email);
     boolean existsByEmailAndIdNot(String email, Long id);
