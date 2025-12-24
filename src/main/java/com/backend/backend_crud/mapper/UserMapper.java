@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class UserMapper {
 
-    public static User mapToEntity(UserRequest request, School school, Role role) {
+    public User mapToEntity(UserRequest request, School school, Role role) {
         return User.builder()
                 .fullName(request.getFullName())
                 .gender(request.getGender())
@@ -26,7 +26,7 @@ public class UserMapper {
                 .build();
     }
 
-    public static UserResponse mapToResponse(User user) {
+    public  UserResponse mapToResponse(User user) {
         return UserResponse.builder()
                 .id(user.getId())
                 .fullName(user.getFullName())

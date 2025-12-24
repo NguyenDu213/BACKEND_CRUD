@@ -11,6 +11,7 @@ import com.backend.backend_crud.entity.School;
 import com.backend.backend_crud.entity.User;
 import com.backend.backend_crud.entity.UserScope;
 import com.backend.backend_crud.exception.AppException;
+import com.backend.backend_crud.mapper.SchoolMapper;
 import jakarta.transaction.Transactional;
 import com.backend.backend_crud.mapper.UserMapper;
 import com.backend.backend_crud.repository.RoleRepository;
@@ -31,6 +32,7 @@ public class UserImplement implements UserService {
     private  final UserRepository userRepository;
     private  final SchoolRepository schoolRepository;
     private  final RoleRepository roleRepository;
+    private final UserMapper userMapper;
 
     @Override
     public ApiResponse<List<UserResponse>> getAll(Long userId) {
@@ -40,7 +42,7 @@ public class UserImplement implements UserService {
             if (scope == UserScope.PROVIDER){
                 if (role.equals("SYSTEM_ADMIN")){
                     List<User> listUser = userRepository.findAllSystemUsers();
-                    List<UserResponse> response = listUser.stream().map(UserMapper::mapToResponse).toList();
+                    List<UserResponse> response = listUser.stream().map(userMapper::mapToResponse).toList();
                     return new ApiResponse<>(true, "Lấy danh sách User thành công", response);
                 }
             }else {
@@ -53,7 +55,7 @@ public class UserImplement implements UserService {
                                 null);
                     }
                     List<User> listUser = userRepository.findAllSchoolUsers(idSchool);
-                    List<UserResponse> response = listUser.stream().map(UserMapper::mapToResponse).toList();
+                    List<UserResponse> response = listUser.stream().map(userMapper::mapToResponse).toList();
                     return new ApiResponse<>(true, "Lấy danh sách User thành công", response);
                 }
             }
@@ -68,6 +70,7 @@ public class UserImplement implements UserService {
         }
     }
 
+    @Transactional
     @Override
     public ApiResponse<UserResponse> createUser(UserRequest request, Long userId) {
             UserScope scope = userRepository.findScopeByUserId(userId);
@@ -92,7 +95,7 @@ public class UserImplement implements UserService {
                     }
 
                     School school = null;
-                    User user = UserMapper.mapToEntity(request, school, role);
+                    User user = userMapper.mapToEntity(request, school, role);
                     user.setSchool(null);
                     user.setPassword(SecurityConfig.passwordEncoder().encode(request.getPassword()));
                     user.setCreateBy(userId);
@@ -100,7 +103,7 @@ public class UserImplement implements UserService {
                     user.setCreatedAt(LocalDateTime.now());
                     userRepository.save(user);
 
-                    UserResponse response = UserMapper.mapToResponse(user);
+                    UserResponse response = userMapper.mapToResponse(user);
 
                     return new ApiResponse<>(true, "Tạo mới User thành công", response);
                 }
@@ -135,14 +138,14 @@ public class UserImplement implements UserService {
                         );
                     }
 
-                    User user = UserMapper.mapToEntity(request, school, role);
+                    User user = userMapper.mapToEntity(request, school, role);
                     user.setPassword(SecurityConfig.passwordEncoder().encode(request.getPassword()));
                     user.setCreateBy(userId);
                     user.setUpdateBy(userId);
                     user.setCreatedAt(LocalDateTime.now());
                     userRepository.save(user);
 
-                    UserResponse response = UserMapper.mapToResponse(user);
+                    UserResponse response = userMapper.mapToResponse(user);
 
                     return new ApiResponse<>(true, "Tạo mới User thành công", response);
                 }
@@ -153,7 +156,7 @@ public class UserImplement implements UserService {
                     null
             );
     }
-
+    @Transactional
     @Override
     public ApiResponse<UserResponse> updateUser(
             UpdateUserRequest request,
@@ -266,10 +269,10 @@ public class UserImplement implements UserService {
             user.setUpdatedAt(LocalDateTime.now());
 
             User savedUser = userRepository.save(user);
-            UserResponse response = UserMapper.mapToResponse(user);
+            UserResponse response = userMapper.mapToResponse(user);
             return new ApiResponse<>(true, "Cập nhật User thành công", response);
     }
-
+    @Transactional
     @Override
     public ApiResponse<UserResponse> deleteUser(Long id) {
             User user = userRepository.findById(id)
@@ -291,7 +294,7 @@ public class UserImplement implements UserService {
                         search = search.trim();
                     }
                     List<User> listUser = userRepository.searchByName(search, UserScope.PROVIDER);
-                    List<UserResponse> response = listUser.stream().map(UserMapper::mapToResponse).toList();
+                    List<UserResponse> response = listUser.stream().map(userMapper::mapToResponse).toList();
                     return new ApiResponse<>(true, "Lấy danh sách User thành công", response);
                 }
             }else {
@@ -308,7 +311,7 @@ public class UserImplement implements UserService {
                     }
 
                     List<User> listUser = userRepository.searchBySchoolAndName(idSchool, UserScope.SCHOOL, search);
-                        List<UserResponse> response = listUser.stream().map(UserMapper::mapToResponse).toList();
+                        List<UserResponse> response = listUser.stream().map(userMapper::mapToResponse).toList();
                         return new ApiResponse<>(true, "Lấy danh sách User thành công", response);
                 }
             }
@@ -345,7 +348,7 @@ public class UserImplement implements UserService {
         
         // Lấy danh sách users theo roleId
         List<User> users = userRepository.findByRoleId(roleId);
-        List<UserResponse> response = users.stream().map(UserMapper::mapToResponse).toList();
+        List<UserResponse> response = users.stream().map(userMapper::mapToResponse).toList();
         return new ApiResponse<>(true, "Lấy danh sách users thành công", response);
     }
 
