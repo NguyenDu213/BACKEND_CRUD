@@ -27,6 +27,11 @@ public interface RoleRepository extends JpaRepository<Role, Long> {
         List<Role> findBySchoolIsNull();
 
         /**
+         * Tìm roles theo typeRole và school = null (system-level roles của một loại cụ thể)
+         */
+        List<Role> findByTypeRoleAndSchoolIsNull(RoleType typeRole);
+
+        /**
          * Tìm roles theo schoolId
          */
         List<Role> findBySchoolId(Long schoolId);

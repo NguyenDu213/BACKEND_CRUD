@@ -1,0 +1,83 @@
+*   [33m0ed1958[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mDev_Nguyen[m[33m)[m Merge remote-tracking branch 'origin/Developer' into Dev_Nguyen
+[31m|[m[32m\[m  
+[31m|[m *   [33mc5d2743[m[33m ([m[1;31morigin/Developer[m[33m)[m Merge pull request #15 from NguyenDu213/Dev_Luan
+[31m|[m [33m|[m[34m\[m  
+[31m|[m [33m|[m *   [33ma1fea18[m[33m ([m[1;31morigin/Dev_Luan[m[33m)[m Merge pull request #14 from NguyenDu213/Developer
+[31m|[m [33m|[m [35m|[m[33m\[m  
+[31m|[m [33m|[m [35m|[m[33m/[m  
+[31m|[m [33m|[m[33m/[m[35m|[m   
+[31m|[m [33m|[m * [33m5565440[m update UserController
+* [33m|[m [36m|[m [33md7b7a54[m[33m ([m[1;31morigin/Dev_Nguyen[m[33m)[m review code
+[33m|[m[33m/[m [36m/[m  
+* [36m|[m [33m24768c1[m Merge pull request #12 from NguyenDu213/Dev_Luan
+[1;31m|[m[36m\[m[36m|[m 
+[1;31m|[m * [33md096465[m fix common
+[1;31m|[m *   [33m71c734b[m Merge branch 'Dev_Luan' of https://github.com/NguyenDu213/BACKEND_CRUD into Dev_Luan
+[1;31m|[m [1;33m|[m[1;34m\[m  
+[1;31m|[m [1;33m|[m *   [33m190fda7[m Merge pull request #11 from NguyenDu213/Developer
+[1;31m|[m [1;33m|[m [1;35m|[m[1;31m\[m  
+[1;31m|[m [1;33m|[m[1;31m_[m[1;35m|[m[1;31m/[m  
+[1;31m|[m[1;31m/[m[1;33m|[m [1;35m|[m   
+* [1;33m|[m [1;35m|[m   [33mc70e495[m Merge branch 'Dev_Luan' into Developer
+[31m|[m[1;35m\[m [1;33m\[m [1;35m\[m  
+[31m|[m [1;35m|[m [1;33m|[m[1;35m/[m  
+[31m|[m [1;35m|[m[1;35m/[m[1;33m|[m   
+* [1;35m|[m [1;33m|[m   [33m948609b[m Merge pull request #10 from NguyenDu213/Dev_Nguyen
+[33m|[m[34m\[m [1;35m\[m [1;33m\[m  
+[33m|[m * [1;35m\[m [1;33m\[m   [33med8f597[m Merge remote-tracking branch 'origin/Developer' into Dev_Nguyen
+[33m|[m [35m|[m[33m\[m [1;35m\[m [1;33m\[m  
+[33m|[m [35m|[m[33m/[m [1;35m/[m [1;33m/[m  
+[33m|[m[33m/[m[35m|[m [1;35m|[m [1;33m|[m   
+* [35m|[m [1;35m|[m [1;33m|[m   [33m88f47d5[m Merge pull request #9 from NguyenDu213/Dev_Khuong
+[1;31m|[m[1;32m\[m [35m\[m [1;35m\[m [1;33m\[m  
+[1;31m|[m * [35m|[m [1;35m|[m [1;33m|[m [33m6adccb1[m[33m ([m[1;31morigin/Dev_Khuong[m[33m)[m Update CRUD for School module
+[1;31m|[m * [35m|[m [1;35m|[m [1;33m|[m [33mdf72726[m[33m ([m[1;32mDev_Khuong[m[33m)[m Add CRUD for School, Fix Security
+[1;31m|[m[1;31m/[m [35m/[m [1;35m/[m [1;33m/[m  
+* [35m|[m [1;35m|[m [1;33m|[m   [33md3cc6dd[m Merge pull request #8 from NguyenDu213/Dev_Nguyen
+[1;33m|[m[1;34m\[m [35m\[m [1;35m\[m [1;33m\[m  
+* [1;34m\[m [35m\[m [1;35m\[m [1;33m\[m   [33m13c7c25[m Merge pull request #7 from NguyenDu213/Dev_Nguyen
+[1;35m|[m[1;36m\[m [1;34m\[m [35m\[m [1;35m\[m [1;33m\[m  
+[1;35m|[m [1;36m|[m [1;34m|[m * [1;35m|[m [1;33m|[m [33m2159d89[m Bo sung check quyen cho tim kiem role theo name
+[1;35m|[m [1;36m|[m [1;34m|[m * [1;35m|[m [1;33m|[m [33m98db433[m chuyen cac ham mapper ve dung vi tri, toi uu query N+1 voi user
+[1;35m|[m [1;36m|[m [1;34m|[m * [1;35m|[m [1;33m|[m [33m0d908bb[m  fix jwt va crud role
+[1;35m|[m [1;36m|[m [1;34m|[m * [1;35m|[m [1;33m|[m [33m54fa365[m Refactor JwtProperties secret key for clarity, add spacing in AuthController, and remove unused RoleService class.
+[1;35m|[m [1;36m|[m [1;34m|[m * [1;35m|[m [1;33m|[m [33mdf0066e[m Refactor RoleController to enhance role management endpoints, including improved error handling and JWT integration. Update RoleRepository with additional queries for role retrieval and validation. Enhance GlobalExceptionHandler for comprehensive error logging and handling.
+[1;35m|[m [1;36m|[m [1;34m|[m[1;34m/[m [1;35m/[m [1;33m/[m  
+[1;35m|[m [1;36m|[m * [1;35m|[m [1;33m|[m [33m0f6d6ff[m crud role
+[1;35m|[m [1;36m|[m * [1;35m|[m [1;33m|[m [33m503986e[m fix JwtResponse tra ve dung dinh dang
+[1;35m|[m [1;36m|[m[1;36m/[m [1;35m/[m [1;33m/[m  
+[1;35m|[m * [1;35m|[m [1;33m|[m [33mfe6d195[m tao jwt xu ly dang nhap
+[1;35m|[m [1;36m|[m [1;35m|[m * [33m92ae514[m update service user
+[1;35m|[m [1;36m|[m [1;35m|[m[1;35m/[m  
+[1;35m|[m [1;36m|[m * [33mbf884ae[m fix request update user api
+[1;35m|[m [1;36m|[m * [33maad36d3[m update logic for User Crud Apis
+[1;35m|[m [1;36m|[m * [33m0ef9a1f[m create crud api for user
+[1;35m|[m [1;36m|[m *   [33m2bc40c9[m Merge pull request #6 from NguyenDu213/Developer
+[1;35m|[m [1;36m|[m [31m|[m[1;35m\[m  
+[1;35m|[m [1;36m|[m[1;35m_[m[31m|[m[1;35m/[m  
+[1;35m|[m[1;35m/[m[1;36m|[m [31m|[m   
+* [1;36m|[m [31m|[m [33mf460b32[m Merge pull request #5 from NguyenDu213/Dev_Nguyen
+[33m|[m[1;36m\[m[1;36m|[m [31m|[m 
+[33m|[m * [31m|[m [33m283589d[m  fix dataSeeder, add SecurityConfig, fix request
+[33m|[m[33m/[m [31m/[m  
+[33m|[m *   [33m399c86f[m Merge pull request #4 from NguyenDu213/Developer
+[33m|[m [35m|[m[33m\[m  
+[33m|[m [35m|[m[33m/[m  
+[33m|[m[33m/[m[35m|[m   
+* [35m|[m   [33me6f4615[m[33m ([m[1;32mDeveloper[m[33m)[m Merge pull request #3 from NguyenDu213/Dev_Khuong
+[1;31m|[m[1;32m\[m [35m\[m  
+[1;31m|[m * [35m\[m   [33m310807f[m Merge branch 'Developer' into Dev_Khuong
+[1;31m|[m [1;33m|[m[1;31m\[m [35m\[m  
+[1;31m|[m [1;33m|[m[1;31m/[m [35m/[m  
+[1;31m|[m[1;31m/[m[1;33m|[m [35m|[m   
+* [1;33m|[m [35m|[m   [33md091e8d[m Merge pull request #2 from NguyenDu213/Dev_Khuong
+[35m|[m[1;36m\[m [1;33m\[m [35m\[m  
+[35m|[m [1;36m|[m[35m_[m[1;33m|[m[35m/[m  
+[35m|[m[35m/[m[1;36m|[m [1;33m|[m   
+[35m|[m [1;36m|[m * [33m8861cf8[m Add mapper, add dto, add config seeder data for role and update user repository
+[35m|[m [1;36m|[m[1;36m/[m  
+[35m|[m * [33md6af5af[m add repository
+[35m|[m * [33m6e2f01b[m Update entity
+[35m|[m[35m/[m  
+* [33m46a71e8[m khoi tao backend va entity
+* [33mdfddc83[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m tao project
