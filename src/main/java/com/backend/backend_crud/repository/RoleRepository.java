@@ -11,40 +11,42 @@ import java.util.List;
 import java.util.Optional;
 
 public interface RoleRepository extends JpaRepository<Role, Long> {
-        /**
-         * Tìm role theo tên
-         */
+
         Optional<Role> findByRoleName(String roleName);
 
-        /**
-         * Tìm role theo tên và school (dùng cho DataSeeder)
-         */
         Optional<Role> findByRoleNameAndSchool(String roleName, School school);
 
-        /**
-         * Tìm roles có school = null (system roles)
-         */
-        List<Role> findBySchoolIsNull();
+        @Query("SELECT r FROM Role r WHERE " +
+                        "(:schoolId IS NULL OR r.school.id = :schoolId) AND " +
+                        "(:keyword IS NULL OR LOWER(r.roleName) LIKE LOWER(CONCAT('%', :keyword, '%'))) AND " +
+                        "(:type IS NULL OR r.typeRole = :type)")
+        List<Role> searchRoles(@Param("schoolId") Long schoolId,
+                        @Param("keyword") String keyword,
+                        @Param("type") RoleType type);
 
-        /**
-         * Tìm roles theo typeRole và school = null (system-level roles của một loại cụ thể)
-         */
-        List<Role> findByTypeRoleAndSchoolIsNull(RoleType typeRole);
-
-        /**
-         * Tìm roles theo schoolId
-         */
         List<Role> findBySchoolId(Long schoolId);
 
-        /**
-         * Kiểm tra roleName đã tồn tại chưa
-         */
-        boolean existsByRoleName(String roleName);
+        List<Role> findBySchoolIsNull();
 
-        /**
-         * Kiểm tra roleName đã tồn tại chưa (trừ id hiện tại)
-         */
-        boolean existsByRoleNameAndIdNot(String roleName, Long id);
+        List<Role> findByTypeRoleAndSchoolIsNull(RoleType typeRole);
+
+        @Query("SELECT COUNT(r) > 0 FROM Role r WHERE " +
+                        "r.roleName = :roleName AND " +
+                        "r.typeRole = :typeRole AND " +
+                        "((:schoolId IS NULL AND r.school IS NULL) OR (r.school.id = :schoolId))")
+        boolean existsDuplicateRole(@Param("roleName") String roleName,
+                        @Param("typeRole") RoleType typeRole,
+                        @Param("schoolId") Long schoolId);
+
+        @Query("SELECT COUNT(r) > 0 FROM Role r WHERE " +
+                        "r.roleName = :roleName AND " +
+                        "r.typeRole = :typeRole AND " +
+                        "((:schoolId IS NULL AND r.school IS NULL) OR (r.school.id = :schoolId)) AND " +
+                        "r.id != :id")
+        boolean existsDuplicateRoleForUpdate(@Param("roleName") String roleName,
+                        @Param("typeRole") RoleType typeRole,
+                        @Param("schoolId") Long schoolId,
+                        @Param("id") Long id);
 
         @Query("SELECT r.typeRole FROM Role r WHERE r.id = :roleId")
         RoleType findTypeRoleByRoleId(@Param("roleId") Long roleId);

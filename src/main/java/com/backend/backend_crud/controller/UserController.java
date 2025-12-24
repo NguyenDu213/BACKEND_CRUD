@@ -49,8 +49,7 @@ public class UserController {
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<UserResponse>> updateUser(
             @PathVariable Long id,
-            @Valid
-            @RequestBody UpdateUserRequest request){
+            @Valid @RequestBody UpdateUserRequest request) {
         Long currentUserId = getCurrentUserId();
 
         return ResponseEntity.ok(userService.updateUser(request, id, currentUserId));
@@ -62,37 +61,7 @@ public class UserController {
         return ResponseEntity.ok(userService.deleteUser(id));
     }
 
-    /**
-     * Lấy danh sách users theo roleId
-     * GET /api/users/by-role/{roleId}
-     */
-    @GetMapping("/by-role/{roleId}")
-    public ResponseEntity<ApiResponse<List<UserResponse>>> getUsersByRoleId(@PathVariable Long roleId) {
-        Long currentUserId = getCurrentUserId();
-        return ResponseEntity.ok(userService.getUsersByRoleId(roleId, currentUserId));
-    }
 
-    /**
-     * Kiểm tra role có đang được sử dụng không
-     * GET /api/users/role-in-use/{roleId}
-     */
-    @GetMapping("/role-in-use/{roleId}")
-    public ResponseEntity<ApiResponse<Boolean>> isRoleInUse(@PathVariable Long roleId) {
-        getCurrentUserId();
-        return ResponseEntity.ok(userService.isRoleInUse(roleId));
-    }
-
-    /**
-     * Gán role mới cho tất cả users đang dùng role cũ
-     * PUT /api/users/reassign-role?oldRoleId={oldRoleId}&newRoleId={newRoleId}
-     */
-    @PutMapping("/reassign-role")
-    public ResponseEntity<ApiResponse<String>> reassignRole(
-            @RequestParam Long oldRoleId,
-            @RequestParam Long newRoleId) {
-        Long currentUserId = getCurrentUserId();
-        return ResponseEntity.ok(userService.reassignRole(oldRoleId, newRoleId, currentUserId));
-    }
 
     private Long getCurrentUserId() {
         String authHeader = httpServletRequest.getHeader("Authorization");
