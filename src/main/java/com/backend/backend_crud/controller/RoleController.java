@@ -7,12 +7,14 @@ import com.backend.backend_crud.dto.response.RoleResponse;
 import com.backend.backend_crud.entity.RoleType;
 import com.backend.backend_crud.exception.AppException;
 import com.backend.backend_crud.mapper.RoleMapper;
+import com.backend.backend_crud.repository.UserRepository;
 import com.backend.backend_crud.service.RoleService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
@@ -26,12 +28,12 @@ public class RoleController {
 
         private final RoleService roleService;
         private final RoleMapper roleMapper;
-
+        private final UserRepository userRepository;
 
         @GetMapping
         public ResponseEntity<ApiResponse<List<RoleResponse>>> getAllRoles(
-                @RequestParam(required = false) RoleType typeRole,
-                @RequestParam(required = false) Long schoolId) {
+                        @RequestParam(required = false) RoleType typeRole,
+                        @RequestParam(required = false) Long schoolId) {
                 return ResponseEntity.ok(roleService.getAllRoles(typeRole, schoolId));
         }
 
@@ -42,10 +44,18 @@ public class RoleController {
 
         @GetMapping("/name/{roleName}")
         public ResponseEntity<ApiResponse<RoleResponse>> getRoleByName(
-                @PathVariable String roleName,
-                @RequestParam(required = false) RoleType typeRole,
-                @RequestParam(required = false) Long schoolId) {
+                        @PathVariable String roleName,
+                        @RequestParam(required = false) RoleType typeRole,
+                        @RequestParam(required = false) Long schoolId) {
                 return ResponseEntity.ok(roleService.getRoleByName(roleName, typeRole, schoolId));
+        }
+
+        @GetMapping("/search")
+        public ResponseEntity<ApiResponse<List<RoleResponse>>> searchRoles(
+                        @RequestParam(required = false) String keyword,
+                        @RequestParam(required = false) Long schoolId,
+                        @RequestParam(required = false) RoleType typeRole) {
+                return ResponseEntity.ok(roleService.searchRoles(keyword, schoolId, typeRole));
         }
 
         /**
@@ -55,7 +65,7 @@ public class RoleController {
         @PostMapping
         public ResponseEntity<ApiResponse<RoleResponse>> createRole(@Valid @RequestBody RoleRequest request) {
                 // Lấy ID user hiện tại từ Security Context (nhanh, gọn, chuẩn)
-                // Long currentUserId = Long.valueOf(SecurityContextHolder.getContext().getAuthentication().getName());
+                // Long.valueOf(SecurityContextHolder.getContext().getAuthentication().getName());
                 Long currentUserId = getCurrentUserId();
 
                 RoleResponse roleResponse = roleMapper.mapToResponse(request);
@@ -69,10 +79,10 @@ public class RoleController {
          */
         @PutMapping("/{id}")
         public ResponseEntity<ApiResponse<RoleResponse>> updateRole(
-                @PathVariable Long id,
-                @Valid @RequestBody UpdateRoleRequest request) {
+                        @PathVariable Long id,
+                        @Valid @RequestBody UpdateRoleRequest request) {
                 // Lấy ID user hiện tại
-                // Long currentUserId = Long.valueOf(SecurityContextHolder.getContext().getAuthentication().getName());
+                // Long.valueOf(SecurityContextHolder.getContext().getAuthentication().getName());
                 Long currentUserId = getCurrentUserId();
 
                 RoleResponse roleResponse = roleMapper.mapToResponse(request);
@@ -85,22 +95,35 @@ public class RoleController {
          * nên Controller chỉ cần truyền ID role là đủ.
          */
         @DeleteMapping("/{id}")
-        // Nếu muốn chặn School Admin xóa role ngay tại Controller thì bỏ comment dòng dưới:
+        // Nếu muốn chặn School Admin xóa role ngay tại Controller thì bỏ comment dòng
+        // dưới:
         // @PreAuthorize("hasAuthority('SYSTEM_ADMIN')")
         public ResponseEntity<ApiResponse<String>> deleteRole(@PathVariable Long id) {
                 return ResponseEntity.ok(roleService.deleteRole(id));
         }
 
+        /**
+         * Gán role mới cho users và xóa role cũ
+         * POST /api/roles/{oldRoleId}/reassign-and-delete?newRoleId={newRoleId}
+         */
+        @PostMapping("/{oldRoleId}/reassign-and-delete")
+        public ResponseEntity<ApiResponse<String>> reassignRoleAndDelete(
+                        @PathVariable Long oldRoleId,
+                        @RequestParam Long newRoleId) {
+                return ResponseEntity.ok(roleService.reassignRoleAndDelete(oldRoleId, newRoleId));
+        }
+
         private Long getCurrentUserId() {
-                var authentication = SecurityContextHolder.getContext().getAuthentication();
+                Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
                 if (authentication == null || !authentication.isAuthenticated()) {
                         throw new AppException.TokenException("Không tìm thấy thông tin xác thực");
                 }
-                try {
-                        return Long.valueOf(authentication.getName());
-                } catch (NumberFormatException e) {
-                        throw new AppException.TokenException("User ID trong token không hợp lệ");
-                }
+                // authentication.getName() trả về email (từ UserDetails.getUsername())
+                String email = authentication.getName();
+                return userRepository.findByEmail(email)
+                                .orElseThrow(() -> new AppException.ResourceNotFoundException(
+                                                "Không tìm thấy thông tin người dùng"))
+                                .getId();
         }
 
 }

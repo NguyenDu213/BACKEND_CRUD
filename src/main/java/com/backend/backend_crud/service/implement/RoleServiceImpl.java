@@ -6,6 +6,7 @@ import com.backend.backend_crud.entity.Role;
 import com.backend.backend_crud.entity.RoleType;
 import com.backend.backend_crud.entity.School;
 import com.backend.backend_crud.entity.User;
+import com.backend.backend_crud.entity.UserScope;
 import com.backend.backend_crud.exception.AppException;
 import com.backend.backend_crud.exception.ValidationException;
 import com.backend.backend_crud.mapper.RoleMapper;
@@ -13,246 +14,331 @@ import com.backend.backend_crud.repository.RoleRepository;
 import com.backend.backend_crud.repository.SchoolRepository;
 import com.backend.backend_crud.repository.UserRepository;
 import com.backend.backend_crud.service.RoleService;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-public class RoleServiceImpl implements RoleService{
+public class RoleServiceImpl implements RoleService {
 
     private final RoleRepository roleRepository;
     private final SchoolRepository schoolRepository;
     private final UserRepository userRepository;
     private final RoleMapper roleMapper;
-//    private final JwtService jwtService;
-//    private final HttpServletRequest httpServletRequest;
 
-    // ================= PUBLIC METHODS =================
-
+    // =================================================================
+    // 1. LẤY DANH SÁCH ROLE (READ)
+    // =================================================================
     @Override
     public ApiResponse<List<RoleResponse>> getAllRoles(RoleType typeRole, Long schoolId) {
         User currentUser = getCurrentUser();
 
-        if (typeRole == RoleType.PROVIDER) {
-            validateProviderAccess(currentUser);
-            List<Role> roles = roleRepository.findBySchoolIsNull();
-            return new ApiResponse<>(true, "Lấy danh sách role hệ thống thành công", mapRolesToResponses(roles));
-        }
+        List<Role> roles;
 
-        if (typeRole == RoleType.SCHOOL) {
-            // Logic: Provider được xem danh sách role School (cấp hệ thống hoặc của trường)
-            if (currentUser.getRole().getTypeRole() == RoleType.PROVIDER) {
-                // Lấy các role SCHOOL mẫu (schoolId = null)
-                List<Role> roles = roleRepository.findByTypeRoleAndSchoolIsNull(RoleType.SCHOOL);
-                return new ApiResponse<>(true, "Lấy danh sách role admin trường học thành công", mapRolesToResponses(roles));
+        // TRƯỜNG HỢP 1: Lấy Role Hệ Thống (PROVIDER)
+        if (typeRole == RoleType.PROVIDER) {
+            // Chỉ nhân viên hệ thống mới được xem role hệ thống
+            if (currentUser.getScope() != UserScope.PROVIDER) {
+                throw new AppException.ForbiddenException("Bạn không có quyền truy cập Role hệ thống");
             }
-
-            // Logic: Admin trường chỉ xem được role của trường mình
-            validateSchoolAccess(currentUser, schoolId);
-            List<Role> roles = roleRepository.findBySchoolId(schoolId);
-            return new ApiResponse<>(true, "Lấy danh sách role thành công", mapRolesToResponses(roles));
+            roles = roleRepository.findBySchoolIsNull(); // Hàm này DataSeeder dùng, ta tái sử dụng
         }
+        // TRƯỜNG HỢP 2: Lấy Role Trường Học (SCHOOL)
+        else if (typeRole == RoleType.SCHOOL) {
+            if (currentUser.getScope() == UserScope.PROVIDER) {
+                // Provider được xem:
+                // a. Role mẫu (schoolId = null)
+                // b. Role của một trường cụ thể (nếu truyền schoolId)
+                if (schoolId == null) {
+                    roles = roleRepository.findByTypeRoleAndSchoolIsNull(RoleType.SCHOOL);
+                } else {
+                    roles = roleRepository.findBySchoolId(schoolId);
+                }
+            } else {
+                // Admin Trường: BẮT BUỘC chỉ được xem trường của mình
+                Long userSchoolId = currentUser.getSchool().getId();
 
-        throw new AppException.BadRequestException("typeRole phải là PROVIDER hoặc SCHOOL");
-    }
-
-    @Override
-    public ApiResponse<RoleResponse> getRoleById(Long id) {
-        Role role = roleRepository.findById(id)
-                .orElseThrow(() -> new AppException.ResourceNotFoundException("Không tìm thấy role với id: " + id));
-
-        User currentUser = getCurrentUser();
-
-        // Kiểm tra xem user hiện tại có quyền xem role này không
-        validateAccessToRole(currentUser, role);
-
-        return new ApiResponse<>(true, "Lấy thông tin role thành công", toRoleResponse(role));
-    }
-
-    @Override
-    public ApiResponse<RoleResponse> getRoleByName(String roleName, RoleType typeRole, Long schoolId) {
-        User currentUser = getCurrentUser();
-
-        // 1. Kiểm tra quyền của User trước khi query DB
-        if (typeRole == RoleType.PROVIDER) {
-            validateProviderAccess(currentUser);
-        } else if (typeRole == RoleType.SCHOOL) {
-            // Nếu là Provider xem role School -> Cho phép (bỏ qua check schoolId của user)
-            if (currentUser.getRole().getTypeRole() != RoleType.PROVIDER) {
-                validateSchoolAccess(currentUser, schoolId);
+                // Nếu user cố tình truyền schoolId khác -> Chặn hoặc Force về school của họ
+                if (schoolId != null && !schoolId.equals(userSchoolId)) {
+                    throw new AppException.ForbiddenException("Bạn không thể xem dữ liệu của trường khác");
+                }
+                roles = roleRepository.findBySchoolId(userSchoolId);
             }
         } else {
             throw new AppException.BadRequestException("typeRole không hợp lệ");
         }
 
-        // 2. Tìm kiếm Role
-        Role role = roleRepository.findByRoleName(roleName)
-                .orElseThrow(() -> new AppException.ResourceNotFoundException("Không tìm thấy role: " + roleName));
+        return new ApiResponse<>(true, "Lấy danh sách thành công", mapRolesToResponses(roles));
+    }
 
-        // 3. Validate logic khớp data
-        if (role.getTypeRole() != typeRole) {
-            throw new AppException.BadRequestException("Role tìm thấy không khớp loại role yêu cầu");
-        }
+    @Override
+    public ApiResponse<RoleResponse> getRoleById(Long id) {
+        Role role = roleRepository.findById(id)
+                .orElseThrow(() -> new AppException.ResourceNotFoundException("Không tìm thấy role ID: " + id));
 
-        // Validate quyền truy cập vào role cụ thể tìm được
-        validateAccessToRole(currentUser, role);
+        // CHECK QUYỀN: User có được xem role này không?
+        validateRoleAccess(getCurrentUser(), role);
 
         return new ApiResponse<>(true, "Thành công", toRoleResponse(role));
     }
 
     @Override
-    @Transactional
-    public ApiResponse<RoleResponse> createRole(RoleResponse request, Long createBy) {
-        // Lưu ý: createBy ở controller truyền vào giờ chính là User ID lấy từ Context
-        User currentUser = userRepository.findById(createBy)
-                .orElseThrow(() -> new AppException.ResourceNotFoundException("User không tồn tại"));
+    public ApiResponse<RoleResponse> getRoleByName(String roleName, RoleType typeRole, Long schoolId) {
+        // Tìm role theo logic cũ (để tương thích) nhưng thêm validate kỹ
+        Role role = roleRepository.findByRoleName(roleName)
+                .orElseThrow(() -> new AppException.ResourceNotFoundException("Không tìm thấy role: " + roleName));
 
-        // Validate quyền tạo
-        if (request.getTypeRole() == RoleType.PROVIDER) {
-            if (currentUser.getRole().getTypeRole() != RoleType.PROVIDER) {
-                throw new AppException.ForbiddenException("Chỉ Provider mới được tạo role hệ thống");
-            }
-        } else {
-            validateSchoolAccess(currentUser, request.getSchoolId());
+        // Validate lại xem role tìm được có đúng ngữ cảnh school/type yêu cầu không
+        if (role.getTypeRole() != typeRole) {
+            throw new AppException.ResourceNotFoundException("Role tìm thấy không đúng loại yêu cầu");
         }
 
-        // Validate trùng tên
-        validateUnique(null, request.getRoleName(), request.getTypeRole(), request.getSchoolId());
+        // CHECK QUYỀN
+        validateRoleAccess(getCurrentUser(), role);
 
-        School school = null;
-        if (request.getSchoolId() != null) {
-            school = schoolRepository.findById(request.getSchoolId())
-                    .orElseThrow(() -> new AppException.ResourceNotFoundException("Không tìm thấy trường học"));
-        }
-
-        Role role = roleMapper.mapToEntityFromResponse(request, school);
-        role.setCreateBy(createBy);
-        role.setUpdateBy(createBy);
-
-        Role savedRole = roleRepository.save(role);
-        return new ApiResponse<>(true, "Tạo thành công", toRoleResponse(savedRole));
+        return new ApiResponse<>(true, "Thành công", toRoleResponse(role));
     }
 
+    @Override
+    public ApiResponse<List<RoleResponse>> searchRoles(String keyword, Long schoolId, RoleType typeRole) {
+        User currentUser = getCurrentUser();
+
+        // 1. Logic check quyền (Giữ nguyên)
+        Long searchSchoolId = schoolId;
+        if (currentUser.getScope() == UserScope.SCHOOL) {
+            searchSchoolId = currentUser.getSchool().getId();
+            if (typeRole == RoleType.PROVIDER) {
+                throw new AppException.ForbiddenException("Không có quyền tìm kiếm Role hệ thống");
+            }
+        }
+
+        // 2. Gọi Repository (Trả về List thay vì Page)
+        List<Role> roles = roleRepository.searchRoles(searchSchoolId, keyword, typeRole);
+
+        // 3. Map sang Response
+        List<RoleResponse> roleResponses = roles.stream()
+                .map(this::toRoleResponse)
+                .collect(Collectors.toList());
+
+        return new ApiResponse<>(true, "Tìm kiếm thành công", roleResponses);
+    }
+
+    // =================================================================
+    // 2. TẠO MỚI (CREATE) - DÙNG REPO MỚI
+    // =================================================================
+    @Override
+    @Transactional
+    public ApiResponse<RoleResponse> createRole(RoleResponse request, Long createBy) {
+        User currentUser = getCurrentUser();
+
+        // 1. Xác định ngữ cảnh (System hay School?)
+        School school = null;
+        if (request.getTypeRole() == RoleType.SCHOOL) {
+            // Logic lấy schoolId chuẩn xác
+            Long targetSchoolId;
+            if (currentUser.getScope() == UserScope.SCHOOL) {
+                targetSchoolId = currentUser.getSchool().getId(); // Admin trường -> Lấy ID trường của họ
+            } else {
+                targetSchoolId = request.getSchoolId(); // Provider -> Lấy ID trường họ nhập
+                if (targetSchoolId == null) {
+                    throw new AppException.BadRequestException("Cần nhập schoolId để tạo role cho trường");
+                }
+            }
+
+            school = schoolRepository.findById(targetSchoolId)
+                    .orElseThrow(() -> new AppException.ResourceNotFoundException("Trường học không tồn tại"));
+        } else {
+            // Tạo Role Provider
+            if (currentUser.getScope() != UserScope.PROVIDER) {
+                throw new AppException.ForbiddenException("Chỉ Admin hệ thống mới được tạo Role hệ thống");
+            }
+        }
+
+        // 2. Validate Trùng Lặp (Dùng hàm REPO MỚI tối ưu)
+        boolean isDuplicate = roleRepository.existsDuplicateRole(
+                request.getRoleName(),
+                request.getTypeRole(),
+                school != null ? school.getId() : null);
+
+        if (isDuplicate) {
+            throw new ValidationException(Map.of("roleName", "Tên quyền hạn đã tồn tại trong phạm vi này"));
+        }
+
+        // 3. Map và Lưu
+        Role role = roleMapper.mapToEntityFromResponse(request, school);
+        role.setCreateBy(currentUser.getId());
+        role.setUpdateBy(currentUser.getId());
+
+        return new ApiResponse<>(true, "Tạo mới thành công", toRoleResponse(roleRepository.save(role)));
+    }
+
+    // =================================================================
+    // 3. CẬP NHẬT (UPDATE) - DÙNG REPO MỚI
+    // =================================================================
     @Override
     @Transactional
     public ApiResponse<RoleResponse> updateRole(Long id, RoleResponse request, Long updateBy) {
-        Role target = roleRepository.findById(id)
-                .orElseThrow(() -> new AppException.ResourceNotFoundException("Không tìm thấy role ID: " + id));
-
-        User currentUser = userRepository.findById(updateBy)
-                .orElseThrow(() -> new AppException.ResourceNotFoundException("User không tồn tại"));
-
-        // Validate quyền sửa (User có được sửa role này không?)
-        validateAccessToRole(currentUser, target);
-
-        // Validate trùng tên (trừ chính nó)
-        if (request.getRoleName() != null) {
-            validateUnique(id, request.getRoleName(), target.getTypeRole(), request.getSchoolId());
-        }
-
-        School school = target.getSchool(); // Mặc định giữ school cũ nếu không truyền
-        if (request.getSchoolId() != null) {
-            school = schoolRepository.findById(request.getSchoolId())
-                    .orElseThrow(() -> new AppException.ResourceNotFoundException("Không tìm thấy trường học"));
-        }
-
-        roleMapper.updateEntityFromResponse(target, request, school);
-        target.setUpdateBy(updateBy);
-
-        Role updatedRole = roleRepository.save(target);
-        return new ApiResponse<>(true, "Cập nhật thành công", toRoleResponse(updatedRole));
-    }
-
-    @Override
-    @Transactional
-    public ApiResponse<String> deleteRole(Long id) {
-        Role target = roleRepository.findById(id)
+        Role existingRole = roleRepository.findById(id)
                 .orElseThrow(() -> new AppException.ResourceNotFoundException("Không tìm thấy role ID: " + id));
 
         User currentUser = getCurrentUser();
 
-        // Validate quyền xóa
-        validateAccessToRole(currentUser, target);
+        // 1. CHECK QUYỀN: Có được sửa role này không?
+        validateRoleAccess(currentUser, existingRole);
 
-        // Check ràng buộc dữ liệu
+        // 2. Xử lý School (thường thì update role không cho đổi school, giữ nguyên cái
+        // cũ)
+        School school = existingRole.getSchool();
+
+        // 3. Validate Trùng Lặp (Trừ chính nó ra) - Dùng hàm REPO MỚI
+        if (request.getRoleName() != null && !request.getRoleName().equals(existingRole.getRoleName())) {
+            boolean isDuplicate = roleRepository.existsDuplicateRoleForUpdate(
+                    request.getRoleName(),
+                    existingRole.getTypeRole(), // Thường không cho đổi TypeRole khi update
+                    school != null ? school.getId() : null,
+                    id);
+
+            if (isDuplicate) {
+                throw new ValidationException(Map.of("roleName", "Tên quyền hạn đã tồn tại"));
+            }
+        }
+
+        // 4. Map và Lưu
+        roleMapper.updateEntityFromResponse(existingRole, request, school);
+        existingRole.setUpdateBy(currentUser.getId());
+
+        return new ApiResponse<>(true, "Cập nhật thành công", toRoleResponse(roleRepository.save(existingRole)));
+    }
+
+    // =================================================================
+    // 4. XÓA (DELETE)
+    // =================================================================
+    @Override
+    @Transactional
+    public ApiResponse<String> deleteRole(Long id) {
+        Role role = roleRepository.findById(id)
+                .orElseThrow(() -> new AppException.ResourceNotFoundException("Không tìm thấy role ID: " + id));
+
+        // CHECK QUYỀN
+        User currentUser = getCurrentUser();
+        validateRoleAccess(currentUser, role);
+
+        // Check ràng buộc user
         Long count = userRepository.countByRoleId(id);
         if (count > 0) {
-            throw new AppException.ConflictException("Không thể xóa role đang có " + count + " người dùng sử dụng.");
+            throw new AppException.ConflictException(
+                    "Không thể xóa role \"" + role.getRoleName() + "\". Đang có " + count
+                            + " người dùng sử dụng role này. " +
+                            "Vui lòng gán role mới cho các người dùng trước khi xóa.");
         }
 
-        roleRepository.delete(target);
-        return new ApiResponse<>(true, "Xóa thành công", "ID: " + id);
+        roleRepository.delete(role);
+        return new ApiResponse<>(true, "Xóa thành công", "Đã xóa role \"" + role.getRoleName() + "\"");
     }
 
-    // ================= PRIVATE HELPER METHODS =================
+    @Override
+    @Transactional
+    public ApiResponse<String> reassignRoleAndDelete(Long oldRoleId, Long newRoleId) {
+        Role oldRole = roleRepository.findById(oldRoleId)
+                .orElseThrow(() -> new AppException.ResourceNotFoundException("Không tìm thấy role cũ"));
+        Role newRole = roleRepository.findById(newRoleId)
+                .orElseThrow(() -> new AppException.ResourceNotFoundException("Không tìm thấy role mới"));
 
-    /**
-     * Lấy User từ Security Context (Chuẩn Spring Security)
-     */
-    private User getCurrentUser() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated()) {
-            throw new AppException.AuthenticationException("Người dùng chưa đăng nhập");
-        }
+        User currentUser = getCurrentUser();
 
-        String email = authentication.getName();
-        return userRepository.findByEmail(email)
-                .orElseThrow(() -> new AppException.ResourceNotFoundException(
-                        "Không tìm thấy thông tin người dùng đang đăng nhập"));
-    }
+        // CHECK QUYỀN cho oldRole
+        validateRoleAccess(currentUser, oldRole);
 
-    /**
-     * Helper kiểm tra xem User có quyền thao tác trên một Role cụ thể không
-     */
-    private void validateAccessToRole(User user, Role role) {
-        if (role.getTypeRole() == RoleType.PROVIDER) {
-            validateProviderAccess(user);
+        // CHECK QUYỀN cho newRole - phải cùng phạm vi
+        if (oldRole.getTypeRole() == RoleType.PROVIDER) {
+            if (newRole.getTypeRole() != RoleType.PROVIDER) {
+                throw new AppException.BadRequestException("Role mới phải cùng loại (Hệ thống) với role cũ");
+            }
         } else {
-            // Role trường học
-            if (user.getRole().getTypeRole() == RoleType.PROVIDER) {
-                // Provider có quyền xem/sửa role trường học không?
-                // Tùy nghiệp vụ, ở code cũ bạn chặn Provider sửa role School cụ thể,
-                // nhưng ở đây tôi giả định Provider có quyền tối cao hoặc code cũ bạn chặn.
-                // Nếu code cũ chặn Provider can thiệp role School của trường cụ thể:
-                if (role.getSchool() != null) {
-                    // Provider không thuộc trường này -> Chặn (theo logic code cũ)
-                    // Nếu muốn Provider được quyền hết thì bỏ dòng throw này.
-                    throw new AppException.ForbiddenException("Provider không được can thiệp dữ liệu riêng của trường");
+            if (newRole.getTypeRole() != RoleType.SCHOOL) {
+                throw new AppException.BadRequestException("Role mới phải cùng loại (Trường học) với role cũ");
+            }
+            // Check cùng trường
+            School oldSchool = oldRole.getSchool();
+            School newSchool = newRole.getSchool();
+            if (oldSchool != null && newSchool != null) {
+                if (!oldSchool.getId().equals(newSchool.getId())) {
+                    throw new AppException.BadRequestException("Role mới phải thuộc cùng trường với role cũ");
                 }
-            } else {
-                // User là School Admin
-                if (role.getSchool() == null) {
-                    throw new AppException.ForbiddenException("Bạn không có quyền với role mẫu hệ thống");
-                }
-                validateSchoolAccess(user, role.getSchool().getId());
+            } else if (oldSchool != null || newSchool != null) {
+                throw new AppException.BadRequestException("Role mới phải thuộc cùng trường với role cũ");
+            }
+        }
+
+        // Lấy danh sách users đang sử dụng oldRole
+        List<User> users = userRepository.findByRoleId(oldRoleId);
+        if (users.isEmpty()) {
+            // Nếu không có user nào, xóa trực tiếp
+            roleRepository.delete(oldRole);
+            return new ApiResponse<>(true, "Xóa thành công", "Đã xóa role \"" + oldRole.getRoleName() + "\"");
+        }
+
+        // Gán role mới cho tất cả users
+        users.forEach(user -> {
+            user.setRole(newRole);
+            user.setUpdateBy(currentUser.getId());
+            user.setUpdatedAt(java.time.LocalDateTime.now());
+        });
+        userRepository.saveAll(users);
+
+        // Xóa role cũ
+        roleRepository.delete(oldRole);
+
+        return new ApiResponse<>(true, "Gán role mới và xóa role cũ thành công",
+                "Đã gán role \"" + newRole.getRoleName() + "\" cho " + users.size() + " người dùng và xóa role \""
+                        + oldRole.getRoleName() + "\"");
+    }
+
+    // =================================================================
+    // PRIVATE HELPERS
+    // =================================================================
+
+    /**
+     * Hàm check quyền cốt lõi:
+     * - User Provider: Có thể làm mọi thứ (hoặc giới hạn tùy nghiệp vụ).
+     * - User School:
+     * + KHÔNG được đụng vào Role System (school=null).
+     * + KHÔNG được đụng vào Role của School khác.
+     */
+    private void validateRoleAccess(User user, Role role) {
+        // Nếu là Super Admin (Provider) -> Cho qua
+        if (user.getScope() == UserScope.PROVIDER) {
+            return;
+        }
+
+        // Nếu là Admin Trường
+        if (user.getScope() == UserScope.SCHOOL) {
+            // 1. Cấm sửa Role Hệ thống
+            if (role.getSchool() == null || role.getTypeRole() == RoleType.PROVIDER) {
+                throw new AppException.ForbiddenException("Bạn không có quyền thao tác trên Role hệ thống");
+            }
+            // 2. Cấm sửa Role trường khác
+            if (!role.getSchool().getId().equals(user.getSchool().getId())) {
+                throw new AppException.ForbiddenException("Bạn không có quyền thao tác trên dữ liệu của trường khác");
             }
         }
     }
 
-    private void validateProviderAccess(User user) {
-        if (user.getRole().getTypeRole() != RoleType.PROVIDER) {
-            throw new AppException.ForbiddenException("Bạn không có quyền hệ thống (Provider)");
+    private User getCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new AppException.AuthenticationException("Vui lòng đăng nhập");
         }
-    }
-
-    private void validateSchoolAccess(User user, Long schoolId) {
-        if (user.getRole().getTypeRole() != RoleType.SCHOOL) {
-            throw new AppException.ForbiddenException("Bạn không phải Admin trường học");
-        }
-        if (schoolId == null) {
-            throw new AppException.BadRequestException("schoolId là bắt buộc");
-        }
-        if (user.getSchool() == null || !schoolId.equals(user.getSchool().getId())) {
-            throw new AppException.ForbiddenException("Bạn không thuộc trường học này");
-        }
+        String email = authentication.getName();
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new AppException.ResourceNotFoundException("Không tìm thấy thông tin người dùng"));
     }
 
     private RoleResponse toRoleResponse(Role role) {
@@ -261,45 +347,10 @@ public class RoleServiceImpl implements RoleService{
     }
 
     private List<RoleResponse> mapRolesToResponses(List<Role> roles) {
-        if (roles == null || roles.isEmpty()) return List.of();
-
+        if (roles == null || roles.isEmpty())
+            return List.of();
         List<Long> roleIds = roles.stream().map(Role::getId).collect(Collectors.toList());
-        Map<Long, Long> userCountsMap = userRepository.getUserCountsByRoleIds(roleIds);
-
-        return roles.stream()
-                .map(role -> {
-                    Long userCount = userCountsMap.getOrDefault(role.getId(), 0L);
-                    return roleMapper.mapToResponse(role, userCount);
-                })
-                .collect(Collectors.toList());
-    }
-
-    private void validateUnique(Long currentId, String roleName, RoleType typeRole, Long schoolId) {
-        Map<String, String> errors = new HashMap<>();
-        Long actualSchoolId = (typeRole == RoleType.PROVIDER) ? null : schoolId;
-
-        if (typeRole == RoleType.SCHOOL && actualSchoolId == null) {
-            errors.put("schoolId", "schoolId là bắt buộc khi typeRole là SCHOOL");
-        }
-
-        if (roleName != null && typeRole != null) {
-            boolean exists;
-            if (currentId == null) {
-                exists = roleRepository.existsByRoleNameAndTypeRoleAndSchoolId(roleName, typeRole, actualSchoolId);
-            } else {
-                exists = roleRepository.existsByRoleNameAndTypeRoleAndSchoolIdAndIdNot(roleName, typeRole, actualSchoolId, currentId);
-            }
-
-            if (exists) {
-                String msg = (typeRole == RoleType.PROVIDER)
-                        ? "Tên role đã tồn tại trong hệ thống"
-                        : "Tên role đã tồn tại trong trường này";
-                errors.put("roleName", msg);
-            }
-        }
-
-        if (!errors.isEmpty()) {
-            throw new ValidationException(errors);
-        }
+        Map<Long, Long> userCountsMap = userRepository.getUserCountsByRoleIds(roleIds); // Giả định Repo User có hàm này
+        return roles.stream().map(this::toRoleResponse).collect(Collectors.toList());
     }
 }
