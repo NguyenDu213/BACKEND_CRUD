@@ -4,6 +4,8 @@ import com.backend.backend_crud.entity.Role;
 import com.backend.backend_crud.entity.RoleType;
 import com.backend.backend_crud.entity.School;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
@@ -58,4 +60,7 @@ public interface RoleRepository extends JpaRepository<Role, Long> {
          */
         boolean existsByRoleNameAndTypeRoleAndSchoolIdAndIdNot(String roleName, RoleType typeRole, Long schoolId,
                         Long id);
+
+        @Query("SELECT r.typeRole FROM Role r WHERE r.id = :roleId")
+        RoleType findTypeRoleByRoleId(@Param("roleId") Long roleId);
 }

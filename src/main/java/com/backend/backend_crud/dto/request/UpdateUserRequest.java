@@ -32,8 +32,9 @@ public class UpdateUserRequest {
     @Pattern(regexp = "^(0|\\+84)[0-9]{9,10}$", message = "Số điện thoại không hợp lệ. Định dạng: 0xxxxxxxxx hoặc +84xxxxxxxxx")
     private String phoneNumber;
 
-
     @Size(max = 100, message = "Email không được quá 100 ký tự")
+
+    @Email(message = "Email không hợp lệ")
     private String email;
 
     private String password;
