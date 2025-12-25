@@ -1,5 +1,7 @@
 package com.backend.backend_crud.service;
 
+import com.backend.backend_crud.dto.request.RoleRequest;
+import com.backend.backend_crud.dto.request.UpdateRoleRequest;
 import com.backend.backend_crud.dto.response.ApiResponse;
 import com.backend.backend_crud.dto.response.RoleResponse;
 import com.backend.backend_crud.entity.RoleType;
@@ -15,9 +17,9 @@ public interface RoleService {
 
     ApiResponse<RoleResponse> getRoleByName(String roleName, RoleType typeRole, Long schoolId);
 
-    ApiResponse<RoleResponse> createRole(RoleResponse request, Long createBy);
+    ApiResponse<RoleResponse> createRole(RoleRequest request);
 
-    ApiResponse<RoleResponse> updateRole(Long id, RoleResponse request, Long updateBy);
+    ApiResponse<RoleResponse> updateRole(Long id, UpdateRoleRequest request);
 
     ApiResponse<String> deleteRole(Long id);
 

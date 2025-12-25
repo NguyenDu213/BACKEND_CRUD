@@ -25,20 +25,6 @@ public class RoleMapper {
                 .build();
     }
 
-    /**
-     * Map từ RoleResponse -> Entity (dùng cho create từ Response)
-     */
-    public Role mapToEntityFromResponse(RoleResponse response, School school) {
-        if (response == null) {
-            return null;
-        }
-        return Role.builder()
-                .roleName(response.getRoleName())
-                .typeRole(response.getTypeRole())
-                .description(response.getDescription())
-                .school(school)
-                .build();
-    }
 
     /**
      * Cập nhật Entity từ RoleResponse (dùng cho update)
@@ -76,36 +62,6 @@ public class RoleMapper {
                 .userCount(userCount != null ? userCount : 0L)
                 .createdAt(role.getCreatedAt())
                 .updatedAt(role.getUpdatedAt())
-                .build();
-    }
-
-    /**
-     * Map từ RoleRequest -> RoleResponse (dùng trong Controller)
-     */
-    public RoleResponse mapToResponse(RoleRequest request) {
-        if (request == null) {
-            return null;
-        }
-        return RoleResponse.builder()
-                .roleName(request.getRoleName())
-                .typeRole(request.getTypeRole())
-                .description(request.getDescription())
-                .schoolId(request.getSchoolId())
-                .build();
-    }
-
-    /**
-     * Map từ UpdateRoleRequest -> RoleResponse (dùng trong Controller)
-     */
-    public RoleResponse mapToResponse(UpdateRoleRequest request) {
-        if (request == null) {
-            return null;
-        }
-        return RoleResponse.builder()
-                .roleName(request.getRoleName())
-                .typeRole(request.getTypeRole())
-                .description(request.getDescription())
-                .schoolId(request.getSchoolId())
                 .build();
     }
 }
