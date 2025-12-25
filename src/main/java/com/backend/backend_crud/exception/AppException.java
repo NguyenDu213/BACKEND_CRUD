@@ -1,16 +1,43 @@
 package com.backend.backend_crud.exception;
 
-import lombok.Getter;
-import org.springframework.http.HttpStatus;
+/**
+ * Tất cả custom exceptions của ứng dụng
+ */
+public class AppException {
 
-@Getter
-public class AppException extends RuntimeException {
-    private final HttpStatus status;
-    private final int code;
+    public static class AuthenticationException extends RuntimeException {
+        public AuthenticationException(String message) {
+            super(message);
+        }
+    }
 
-    public AppException(int code, String message) {
-        super(message);
-        this.code = code;
-        this.status = HttpStatus.valueOf(code);
+    public static class TokenException extends RuntimeException {
+        public TokenException(String message) {
+            super(message);
+        }
+    }
+
+    public static class ResourceNotFoundException extends RuntimeException {
+        public ResourceNotFoundException(String message) {
+            super(message);
+        }
+    }
+
+    public static class ForbiddenException extends RuntimeException {
+        public ForbiddenException(String message) {
+            super(message);
+        }
+    }
+
+    public static class BadRequestException extends RuntimeException {
+        public BadRequestException(String message) {
+            super(message);
+        }
+    }
+
+    public static class ConflictException extends RuntimeException {
+        public ConflictException(String message) {
+            super(message);
+        }
     }
 }

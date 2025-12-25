@@ -1,4 +1,4 @@
-package com.backend.backend_crud.service.Impl;
+package com.backend.backend_crud.service.implement;
 
 import com.backend.backend_crud.dto.request.SchoolRequest;
 import com.backend.backend_crud.dto.request.UpdateSchoolRequest;
@@ -65,7 +65,7 @@ public class SchoolServiceImpl implements SchoolService {
     @Override
     public SchoolResponse getById(Long id) {
         School school = schoolRepository.findById(id)
-                .orElseThrow(() -> new AppException(404, "Không tìm thấy trường học"));
+                .orElseThrow(() -> new AppException.ResourceNotFoundException("Không tìm thấy trường học"));
         return schoolMapper.mapToResponse(school);
     }
 
@@ -99,7 +99,7 @@ public class SchoolServiceImpl implements SchoolService {
     @Transactional
     public SchoolResponse update(Long id, UpdateSchoolRequest request) {
         School school = schoolRepository.findById(id)
-                .orElseThrow(() -> new AppException(404, "Không tìm thấy trường học"));
+                .orElseThrow(() -> new AppException.ResourceNotFoundException("Không tìm thấy trường học"));
 
         // Check trùng
         validateUnique(id, request.getCode(), request.getName(), request.getEmail(), request.getHotline());
@@ -118,7 +118,7 @@ public class SchoolServiceImpl implements SchoolService {
     @Transactional
     public void delete(Long id) {
         if (!schoolRepository.existsById(id)) {
-            throw new AppException(404, "Không tìm thấy trường học để xóa");
+            throw new AppException.ResourceNotFoundException("Không tìm thấy trường học để xóa");
         }
 
         List<User> usersOfSchool = userRepository.findBySchoolId(id);
@@ -148,26 +148,32 @@ public class SchoolServiceImpl implements SchoolService {
     private User getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {
-            throw new AppException(401, "Người dùng chưa đăng nhập");
+            throw new AppException.AuthenticationException("Người dùng chưa đăng nhập");
         }
 
         String email = authentication.getName();
         return userRepository.findByEmail(email)
-                .orElseThrow(() -> new AppException(404, "Không tìm thấy thông tin người dùng đang đăng nhập"));
+                .orElseThrow(() -> new AppException.ResourceNotFoundException(
+                        "Không tìm thấy thông tin người dùng đang đăng nhập"));
     }
 
     private void validateUnique(Long currentId, String code, String name, String email, String hotline) {
         Map<String, String> errors = new HashMap<>();
-        if (code != null && (currentId == null ? schoolRepository.existsByCode(code) : schoolRepository.existsByCodeAndIdNot(code, currentId)))
+        if (code != null && (currentId == null ? schoolRepository.existsByCode(code)
+                : schoolRepository.existsByCodeAndIdNot(code, currentId)))
             errors.put("code", "Mã trường đã tồn tại");
-        if (name != null && (currentId == null ? schoolRepository.existsByName(name) : schoolRepository.existsByNameAndIdNot(name, currentId)))
+        if (name != null && (currentId == null ? schoolRepository.existsByName(name)
+                : schoolRepository.existsByNameAndIdNot(name, currentId)))
             errors.put("name", "Tên trường đã tồn tại");
-        if (email != null && (currentId == null ? schoolRepository.existsByEmail(email) : schoolRepository.existsByEmailAndIdNot(email, currentId)))
+        if (email != null && (currentId == null ? schoolRepository.existsByEmail(email)
+                : schoolRepository.existsByEmailAndIdNot(email, currentId)))
             errors.put("email", "Email trường đã tồn tại");
-        if (hotline != null && (currentId == null ? schoolRepository.existsByHotline(hotline) : schoolRepository.existsByHotlineAndIdNot(hotline, currentId)))
+        if (hotline != null && (currentId == null ? schoolRepository.existsByHotline(hotline)
+                : schoolRepository.existsByHotlineAndIdNot(hotline, currentId)))
             errors.put("hotline", "Hotline đã tồn tại");
 
-        if (!errors.isEmpty()) throw new ValidationException(errors);
+        if (!errors.isEmpty())
+            throw new ValidationException(errors);
     }
 
     private Role createSchoolAdminRole(School school, Long creatorId) {

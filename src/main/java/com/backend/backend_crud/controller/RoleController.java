@@ -5,118 +5,125 @@ import com.backend.backend_crud.dto.request.UpdateRoleRequest;
 import com.backend.backend_crud.dto.response.ApiResponse;
 import com.backend.backend_crud.dto.response.RoleResponse;
 import com.backend.backend_crud.entity.RoleType;
+import com.backend.backend_crud.exception.AppException;
+import com.backend.backend_crud.mapper.RoleMapper;
+import com.backend.backend_crud.repository.UserRepository;
 import com.backend.backend_crud.service.RoleService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-/**
- * Controller xử lý CRUD operations cho Role
- * Tất cả exceptions được xử lý bởi GlobalExceptionHandler
- */
 @RestController
 @RequestMapping("/api/roles")
+@PreAuthorize("hasAnyAuthority('SYSTEM_ADMIN', 'SCHOOL_ADMIN')")
 @RequiredArgsConstructor
 public class RoleController {
 
-    private final RoleService roleService;
+        private final RoleService roleService;
+        private final RoleMapper roleMapper;
+        private final UserRepository userRepository;
 
-    /**
-     * Lấy danh sách tất cả roles với filter tùy chọn
-     *
-     * @param typeRole Loại role (PROVIDER hoặc SCHOOL) - optional
-     * @param schoolId ID của school - optional
-     * @return Danh sách RoleResponse
-     */
-    @GetMapping
-    public ResponseEntity<ApiResponse<List<RoleResponse>>> getAllRoles(
-            @RequestParam(required = false) RoleType typeRole,
-            @RequestParam(required = false) Long schoolId) {
-        List<RoleResponse> roles = roleService.getAllRoles(typeRole, schoolId);
-        return ResponseEntity.ok(ApiResponse.<List<RoleResponse>>builder()
-                .status(true)
-                .message("Lấy danh sách roles thành công")
-                .data(roles)
-                .build());
-    }
+        @GetMapping
+        public ResponseEntity<ApiResponse<List<RoleResponse>>> getAllRoles(
+                        @RequestParam(required = false) RoleType typeRole,
+                        @RequestParam(required = false) Long schoolId) {
+                return ResponseEntity.ok(roleService.getAllRoles(typeRole, schoolId));
+        }
 
-    /**
-     * Lấy role theo ID
-     *
-     * @param id ID của role
-     * @return RoleResponse
-     */
-    @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<RoleResponse>> getRoleById(@PathVariable Long id) {
-        RoleResponse role = roleService.getRoleById(id);
-        return ResponseEntity.ok(ApiResponse.<RoleResponse>builder()
-                .status(true)
-                .message("Lấy role thành công")
-                .data(role)
-                .build());
-    }
+        @GetMapping("/{id}")
+        public ResponseEntity<ApiResponse<RoleResponse>> getRoleById(@PathVariable Long id) {
+                return ResponseEntity.ok(roleService.getRoleById(id));
+        }
 
-    /**
-     * Tạo role mới
-     *
-     * @param request RoleRequest chứa thông tin role
-     * @return RoleResponse
-     */
-    @PostMapping
-    public ResponseEntity<ApiResponse<RoleResponse>> createRole(@Valid @RequestBody RoleRequest request) {
-        // TODO: Lấy createBy từ security context khi có authentication
-        // Tạm thời dùng giá trị mặc định hoặc từ request header
-        Long createBy = 1L; // Sẽ được thay thế bằng user ID từ JWT token
-        
-        RoleResponse role = roleService.createRole(request, createBy);
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.<RoleResponse>builder()
-                        .status(true)
-                        .message("Tạo role thành công")
-                        .data(role)
-                        .build());
-    }
+        @GetMapping("/name/{roleName}")
+        public ResponseEntity<ApiResponse<RoleResponse>> getRoleByName(
+                        @PathVariable String roleName,
+                        @RequestParam(required = false) RoleType typeRole,
+                        @RequestParam(required = false) Long schoolId) {
+                return ResponseEntity.ok(roleService.getRoleByName(roleName, typeRole, schoolId));
+        }
 
-    /**
-     * Cập nhật role
-     *
-     * @param id      ID của role cần cập nhật
-     * @param request UpdateRoleRequest chứa thông tin cập nhật
-     * @return RoleResponse
-     */
-    @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<RoleResponse>> updateRole(
-            @PathVariable Long id,
-            @Valid @RequestBody UpdateRoleRequest request) {
-        // TODO: Lấy updateBy từ security context khi có authentication
-        // Tạm thời dùng giá trị mặc định hoặc từ request header
-        Long updateBy = 1L;
-        
-        RoleResponse role = roleService.updateRole(id, request, updateBy);
-        return ResponseEntity.ok(ApiResponse.<RoleResponse>builder()
-                .status(true)
-                .message("Cập nhật role thành công")
-                .data(role)
-                .build());
-    }
+        @GetMapping("/search")
+        public ResponseEntity<ApiResponse<List<RoleResponse>>> searchRoles(
+                        @RequestParam(required = false) String keyword,
+                        @RequestParam(required = false) Long schoolId,
+                        @RequestParam(required = false) RoleType typeRole) {
+                return ResponseEntity.ok(roleService.searchRoles(keyword, schoolId, typeRole));
+        }
 
-    /**
-     * Xóa role
-     *
-     * @param id ID của role cần xóa
-     * @return ApiResponse với thông báo thành công
-     */
-    @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponse<Object>> deleteRole(@PathVariable Long id) {
-        roleService.deleteRole(id);
-        return ResponseEntity.ok(ApiResponse.builder()
-                .status(true)
-                .message("Xóa role thành công")
-                .data(null)
-                .build());
-    }
+        /**
+         * Tạo role mới
+         * Service yêu cầu tham số createBy, ta lấy từ SecurityContext
+         */
+        @PostMapping
+        public ResponseEntity<ApiResponse<RoleResponse>> createRole(@Valid @RequestBody RoleRequest request) {
+                // Lấy ID user hiện tại từ Security Context (nhanh, gọn, chuẩn)
+                // Long.valueOf(SecurityContextHolder.getContext().getAuthentication().getName());
+                Long currentUserId = getCurrentUserId();
+
+                RoleResponse roleResponse = roleMapper.mapToResponse(request);
+                ApiResponse<RoleResponse> response = roleService.createRole(roleResponse, currentUserId);
+
+                return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        }
+
+        /**
+         * Cập nhật role
+         */
+        @PutMapping("/{id}")
+        public ResponseEntity<ApiResponse<RoleResponse>> updateRole(
+                        @PathVariable Long id,
+                        @Valid @RequestBody UpdateRoleRequest request) {
+                // Lấy ID user hiện tại
+                // Long.valueOf(SecurityContextHolder.getContext().getAuthentication().getName());
+                Long currentUserId = getCurrentUserId();
+
+                RoleResponse roleResponse = roleMapper.mapToResponse(request);
+                return ResponseEntity.ok(roleService.updateRole(id, roleResponse, currentUserId));
+        }
+
+        /**
+         * Xóa role
+         * Service mới đã tự gọi getCurrentUser() bên trong để check quyền xóa,
+         * nên Controller chỉ cần truyền ID role là đủ.
+         */
+        @DeleteMapping("/{id}")
+        // Nếu muốn chặn School Admin xóa role ngay tại Controller thì bỏ comment dòng
+        // dưới:
+        // @PreAuthorize("hasAuthority('SYSTEM_ADMIN')")
+        public ResponseEntity<ApiResponse<String>> deleteRole(@PathVariable Long id) {
+                return ResponseEntity.ok(roleService.deleteRole(id));
+        }
+
+        /**
+         * Gán role mới cho users và xóa role cũ
+         * POST /api/roles/{oldRoleId}/reassign-and-delete?newRoleId={newRoleId}
+         */
+        @PostMapping("/{oldRoleId}/reassign-and-delete")
+        public ResponseEntity<ApiResponse<String>> reassignRoleAndDelete(
+                        @PathVariable Long oldRoleId,
+                        @RequestParam Long newRoleId) {
+                return ResponseEntity.ok(roleService.reassignRoleAndDelete(oldRoleId, newRoleId));
+        }
+
+        private Long getCurrentUserId() {
+                Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+                if (authentication == null || !authentication.isAuthenticated()) {
+                        throw new AppException.TokenException("Không tìm thấy thông tin xác thực");
+                }
+                // authentication.getName() trả về email (từ UserDetails.getUsername())
+                String email = authentication.getName();
+                return userRepository.findByEmail(email)
+                                .orElseThrow(() -> new AppException.ResourceNotFoundException(
+                                                "Không tìm thấy thông tin người dùng"))
+                                .getId();
+        }
+
 }

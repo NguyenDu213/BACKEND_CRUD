@@ -2,7 +2,7 @@ package com.backend.backend_crud.service;
 
 import com.backend.backend_crud.dto.response.JwtResponse;
 import com.backend.backend_crud.entity.User;
-import com.backend.backend_crud.exception.AuthenticationException;
+import com.backend.backend_crud.exception.AppException;
 import com.backend.backend_crud.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -22,18 +22,19 @@ public class AuthService {
      * @param email    Email của user
      * @param password Password của user
      * @return JwtResponse chứa access token
-     * @throws AuthenticationException nếu email hoặc password không đúng
+     * @throws AppException.AuthenticationException nếu email hoặc password không
+     *                                              đúng
      */
     public JwtResponse login(String email, String password) {
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new AuthenticationException("Email hoặc mật khẩu không đúng"));
+                .orElseThrow(() -> new AppException.AuthenticationException("Email hoặc mật khẩu không đúng"));
 
         if (!user.getIsActive()) {
-            throw new AuthenticationException("Tài khoản đã bị vô hiệu hóa");
+            throw new AppException.AuthenticationException("Tài khoản đã bị vô hiệu hóa");
         }
 
         if (!passwordEncoder.matches(password, user.getPassword())) {
-            throw new AuthenticationException("Email hoặc mật khẩu không đúng");
+            throw new AppException.AuthenticationException("Email hoặc mật khẩu không đúng");
         }
 
         String accessToken = jwtService.generateAccessToken(user);
@@ -43,9 +44,10 @@ public class AuthService {
 
     /**
      * Helper method để build JwtResponse từ User và token
-     * Match với cấu trúc frontend expect: { token, user: { id, email, fullName, scope, schoolId, roleId } }
+     * Match với cấu trúc frontend expect: { token, user: { id, email, fullName,
+     * scope, schoolId, roleId } }
      *
-     * @param user User entity
+     * @param user        User entity
      * @param accessToken Access token
      * @return JwtResponse
      */
@@ -58,7 +60,7 @@ public class AuthService {
                 .schoolId(user.getSchool() != null ? user.getSchool().getId() : null)
                 .roleId(user.getRole().getId())
                 .build();
-        
+
         return JwtResponse.builder()
                 .token(accessToken)
                 .user(userInfo)
