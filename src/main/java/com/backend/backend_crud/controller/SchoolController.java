@@ -3,6 +3,7 @@ package com.backend.backend_crud.controller;
 import com.backend.backend_crud.dto.request.SchoolRequest;
 import com.backend.backend_crud.dto.request.UpdateSchoolRequest;
 import com.backend.backend_crud.dto.response.ApiResponse;
+import com.backend.backend_crud.dto.response.PageResponse;
 import com.backend.backend_crud.dto.response.SchoolResponse;
 import com.backend.backend_crud.service.SchoolService;
 import jakarta.validation.Valid;
@@ -23,11 +24,27 @@ public class SchoolController {
     private final SchoolService schoolService;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<SchoolResponse>>> getAllSchools() {
-        return ResponseEntity.ok(ApiResponse.<List<SchoolResponse>>builder()
+    public ResponseEntity<ApiResponse<PageResponse<SchoolResponse>>> getAllSchools(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "3") int size // Mặc định hiển thị 3
+    ) {
+        return ResponseEntity.ok(ApiResponse.<PageResponse<SchoolResponse>>builder()
                 .status(true)
                 .message("Lấy danh sách trường học thành công")
-                .data(schoolService.getAll())
+                .data(schoolService.getAll(page, size))
+                .build());
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<ApiResponse<PageResponse<SchoolResponse>>> searchSchools(
+            @RequestParam("name") String name,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "3") int size
+    ) {
+        return ResponseEntity.ok(ApiResponse.<PageResponse<SchoolResponse>>builder()
+                .status(true)
+                .message("Kết quả tìm kiếm")
+                .data(schoolService.searchSchoolsByName(name, page, size))
                 .build());
     }
 
@@ -66,18 +83,6 @@ public class SchoolController {
         return ResponseEntity.ok(ApiResponse.<Void>builder()
                 .status(true)
                 .message("Xóa trường học thành công")
-                .build());
-    }
-
-    @GetMapping("/search")
-    public ResponseEntity<ApiResponse<List<SchoolResponse>>> searchSchools(@RequestParam("name") String name) {
-
-        List<SchoolResponse> result = schoolService.searchSchoolsByName(name);
-
-        return ResponseEntity.ok(ApiResponse.<List<SchoolResponse>>builder()
-                .status(true)
-                .message("Search results")
-                .data(result)
                 .build());
     }
 }
