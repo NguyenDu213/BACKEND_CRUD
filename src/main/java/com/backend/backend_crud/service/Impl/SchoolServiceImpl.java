@@ -2,6 +2,7 @@ package com.backend.backend_crud.service.Impl;
 
 import com.backend.backend_crud.dto.request.SchoolRequest;
 import com.backend.backend_crud.dto.request.UpdateSchoolRequest;
+import com.backend.backend_crud.dto.response.PageResponse;
 import com.backend.backend_crud.dto.response.SchoolResponse;
 import com.backend.backend_crud.entity.Role;
 import com.backend.backend_crud.entity.School;
@@ -17,6 +18,10 @@ import com.backend.backend_crud.repository.SchoolRepository;
 import com.backend.backend_crud.repository.UserRepository;
 import com.backend.backend_crud.service.SchoolService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -40,10 +45,21 @@ public class SchoolServiceImpl implements SchoolService {
     private final PasswordEncoder passwordEncoder;
 
     @Override
-    public List<SchoolResponse> getAll() {
-        return schoolRepository.findAll().stream()
-                .map(schoolMapper::mapToResponse)
-                .collect(Collectors.toList());
+    public PageResponse<SchoolResponse> getAll(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
+
+        Page<School> pageData = schoolRepository.findAll(pageable);
+
+        return mapToPageResponse(pageData);
+    }
+
+    @Override
+    public PageResponse<SchoolResponse> searchSchoolsByName(String name, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
+
+        Page<School> pageData = schoolRepository.findByNameContainingIgnoreCase(name, pageable);
+
+        return mapToPageResponse(pageData);
     }
 
     @Override
@@ -113,11 +129,20 @@ public class SchoolServiceImpl implements SchoolService {
         schoolRepository.deleteById(id);
     }
 
-    @Override
-    public List<SchoolResponse> searchSchoolsByName(String name) {
-        return schoolRepository.findByNameContainingIgnoreCase(name).stream()
+    // All helper service functions
+
+    private PageResponse<SchoolResponse> mapToPageResponse(Page<School> pageData) {
+        List<SchoolResponse> responseList = pageData.getContent().stream()
                 .map(schoolMapper::mapToResponse)
                 .collect(Collectors.toList());
+
+        return PageResponse.<SchoolResponse>builder()
+                .page(pageData.getNumber())
+                .size(pageData.getSize())
+                .totalElements(pageData.getTotalElements())
+                .totalPages(pageData.getTotalPages())
+                .data(responseList)
+                .build();
     }
 
     private User getCurrentUser() {
