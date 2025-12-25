@@ -40,7 +40,7 @@ public class UpdateUserRequest {
 
     private Long schoolId;
 
-    @Min(value = 1, message = "Role ID phải lớn hơn 0")
+    @Min(value = 1, message = "Role không hợp lệ")
     private Long roleId;
 
     private Boolean isActive;

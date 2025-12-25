@@ -11,7 +11,6 @@ import com.backend.backend_crud.entity.School;
 import com.backend.backend_crud.entity.User;
 import com.backend.backend_crud.entity.UserScope;
 import com.backend.backend_crud.exception.AppException;
-import com.backend.backend_crud.mapper.SchoolMapper;
 import jakarta.transaction.Transactional;
 import com.backend.backend_crud.mapper.UserMapper;
 import com.backend.backend_crud.repository.RoleRepository;
@@ -249,10 +248,9 @@ public class UserImplement implements UserService {
             }
 
             String passwordUpdate;
-            if (request.getPassword() == null || request.getPassword().isBlank()){
-                passwordUpdate = user.getPassword();
-            } else{
+            if (request.getPassword() != null && !request.getPassword().isEmpty()){
                 passwordUpdate = request.getPassword();
+                user.setPassword(SecurityConfig.passwordEncoder().encode(passwordUpdate));
             }
 
             user.setFullName(request.getFullName());
@@ -264,7 +262,6 @@ public class UserImplement implements UserService {
             user.setScope(request.getScope());
             user.setIsActive(request.getIsActive());
             user.setRole(role);
-            user.setPassword(SecurityConfig.passwordEncoder().encode(passwordUpdate));
             user.setUpdateBy(updateBy);
             user.setUpdatedAt(LocalDateTime.now());
 
