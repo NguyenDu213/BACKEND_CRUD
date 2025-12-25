@@ -5,17 +5,12 @@ import com.backend.backend_crud.dto.request.UpdateRoleRequest;
 import com.backend.backend_crud.dto.response.ApiResponse;
 import com.backend.backend_crud.dto.response.RoleResponse;
 import com.backend.backend_crud.entity.RoleType;
-import com.backend.backend_crud.exception.AppException;
-import com.backend.backend_crud.mapper.RoleMapper;
-import com.backend.backend_crud.repository.UserRepository;
 import com.backend.backend_crud.service.RoleService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -27,8 +22,6 @@ import java.util.List;
 public class RoleController {
 
         private final RoleService roleService;
-        private final RoleMapper roleMapper;
-        private final UserRepository userRepository;
 
         @GetMapping
         public ResponseEntity<ApiResponse<List<RoleResponse>>> getAllRoles(
@@ -64,13 +57,7 @@ public class RoleController {
          */
         @PostMapping
         public ResponseEntity<ApiResponse<RoleResponse>> createRole(@Valid @RequestBody RoleRequest request) {
-                // Lấy ID user hiện tại từ Security Context (nhanh, gọn, chuẩn)
-                // Long.valueOf(SecurityContextHolder.getContext().getAuthentication().getName());
-                Long currentUserId = getCurrentUserId();
-
-                RoleResponse roleResponse = roleMapper.mapToResponse(request);
-                ApiResponse<RoleResponse> response = roleService.createRole(roleResponse, currentUserId);
-
+                ApiResponse<RoleResponse> response = roleService.createRole(request);
                 return ResponseEntity.status(HttpStatus.CREATED).body(response);
         }
 
@@ -79,14 +66,9 @@ public class RoleController {
          */
         @PutMapping("/{id}")
         public ResponseEntity<ApiResponse<RoleResponse>> updateRole(
-                        @PathVariable Long id,
-                        @Valid @RequestBody UpdateRoleRequest request) {
-                // Lấy ID user hiện tại
-                // Long.valueOf(SecurityContextHolder.getContext().getAuthentication().getName());
-                Long currentUserId = getCurrentUserId();
-
-                RoleResponse roleResponse = roleMapper.mapToResponse(request);
-                return ResponseEntity.ok(roleService.updateRole(id, roleResponse, currentUserId));
+                @PathVariable Long id,
+                @Valid @RequestBody UpdateRoleRequest request) { // Nhận đúng DTO Update
+                return ResponseEntity.ok(roleService.updateRole(id, request));
         }
 
         /**
@@ -95,8 +77,6 @@ public class RoleController {
          * nên Controller chỉ cần truyền ID role là đủ.
          */
         @DeleteMapping("/{id}")
-        // Nếu muốn chặn School Admin xóa role ngay tại Controller thì bỏ comment dòng
-        // dưới:
         // @PreAuthorize("hasAuthority('SYSTEM_ADMIN')")
         public ResponseEntity<ApiResponse<String>> deleteRole(@PathVariable Long id) {
                 return ResponseEntity.ok(roleService.deleteRole(id));
@@ -113,17 +93,5 @@ public class RoleController {
                 return ResponseEntity.ok(roleService.reassignRoleAndDelete(oldRoleId, newRoleId));
         }
 
-        private Long getCurrentUserId() {
-                Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-                if (authentication == null || !authentication.isAuthenticated()) {
-                        throw new AppException.TokenException("Không tìm thấy thông tin xác thực");
-                }
-                // authentication.getName() trả về email (từ UserDetails.getUsername())
-                String email = authentication.getName();
-                return userRepository.findByEmail(email)
-                                .orElseThrow(() -> new AppException.ResourceNotFoundException(
-                                                "Không tìm thấy thông tin người dùng"))
-                                .getId();
-        }
 
 }
