@@ -29,20 +29,9 @@ public class RoleMapper {
     /**
      * Cập nhật Entity từ RoleResponse (dùng cho update)
      */
-    public void updateEntityFromResponse(Role role, RoleResponse response, School school) {
-        if (response == null || role == null) {
-            return;
-        }
-        if (response.getRoleName() != null) {
-            role.setRoleName(response.getRoleName());
-        }
-        if (response.getTypeRole() != null) {
-            role.setTypeRole(response.getTypeRole());
-        }
-        if (response.getDescription() != null) {
-            role.setDescription(response.getDescription());
-        }
-        role.setSchool(school);
+    public void updateEntityFromRequest(Role role, UpdateRoleRequest request) {
+        if (request.getRoleName() != null) role.setRoleName(request.getRoleName());
+        if (request.getDescription() != null) role.setDescription(request.getDescription());
     }
 
     /**
@@ -64,4 +53,6 @@ public class RoleMapper {
                 .updatedAt(role.getUpdatedAt())
                 .build();
     }
+
+
 }

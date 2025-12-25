@@ -3,6 +3,7 @@ package com.backend.backend_crud.controller;
 import com.backend.backend_crud.dto.request.RoleRequest;
 import com.backend.backend_crud.dto.request.UpdateRoleRequest;
 import com.backend.backend_crud.dto.response.ApiResponse;
+import com.backend.backend_crud.dto.response.PageResponse;
 import com.backend.backend_crud.dto.response.RoleResponse;
 import com.backend.backend_crud.entity.RoleType;
 import com.backend.backend_crud.service.RoleService;
@@ -13,7 +14,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/roles")
@@ -24,10 +24,12 @@ public class RoleController {
         private final RoleService roleService;
 
         @GetMapping
-        public ResponseEntity<ApiResponse<List<RoleResponse>>> getAllRoles(
-                        @RequestParam(required = false) RoleType typeRole,
-                        @RequestParam(required = false) Long schoolId) {
-                return ResponseEntity.ok(roleService.getAllRoles(typeRole, schoolId));
+        public ResponseEntity<ApiResponse<PageResponse<RoleResponse>>> getAllRoles(
+                @RequestParam(required = false) RoleType typeRole,
+                @RequestParam(defaultValue = "1") int page,
+                @RequestParam(defaultValue = "10") int size) {
+
+                return ResponseEntity.ok(roleService.getAllRoles(typeRole, page - 1, size));
         }
 
         @GetMapping("/{id}")
@@ -44,11 +46,13 @@ public class RoleController {
         }
 
         @GetMapping("/search")
-        public ResponseEntity<ApiResponse<List<RoleResponse>>> searchRoles(
-                        @RequestParam(required = false) String keyword,
-                        @RequestParam(required = false) Long schoolId,
-                        @RequestParam(required = false) RoleType typeRole) {
-                return ResponseEntity.ok(roleService.searchRoles(keyword, schoolId, typeRole));
+        public ResponseEntity<ApiResponse<PageResponse<RoleResponse>>> searchRoles(
+                @RequestParam(required = false) String keyword,
+                @RequestParam(required = false) Long schoolId,
+                @RequestParam(required = false) RoleType typeRole,
+                @RequestParam(defaultValue = "1") int page,
+                @RequestParam(defaultValue = "10") int size) {
+                return ResponseEntity.ok(roleService.searchRoles(keyword, schoolId, typeRole, page - 1, size));
         }
 
         /**

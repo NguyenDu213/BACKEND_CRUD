@@ -3,6 +3,7 @@ package com.backend.backend_crud.service.implement;
 import com.backend.backend_crud.dto.request.RoleRequest;
 import com.backend.backend_crud.dto.request.UpdateRoleRequest;
 import com.backend.backend_crud.dto.response.ApiResponse;
+import com.backend.backend_crud.dto.response.PageResponse;
 import com.backend.backend_crud.dto.response.RoleResponse;
 import com.backend.backend_crud.entity.Role;
 import com.backend.backend_crud.entity.RoleType;
@@ -16,6 +17,10 @@ import com.backend.backend_crud.repository.RoleRepository;
 import com.backend.backend_crud.repository.UserRepository;
 import com.backend.backend_crud.service.RoleService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -37,29 +42,35 @@ public class RoleServiceImpl implements RoleService {
     // 1. LẤY DANH SÁCH ROLE (READ)
     // =================================================================
     @Override
-    public ApiResponse<List<RoleResponse>> getAllRoles(RoleType typeRole, Long schoolId) {
+    public ApiResponse<PageResponse<RoleResponse>> getAllRoles(RoleType typeRole, int page, int size) {
         User currentUser = getCurrentUser();
         ensureAdminAccess(currentUser);
-        List<Role> roles;
+
+        // 1. Tạo Pageable
+        Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
+
+        Page<Role> pageData;
 
         if (currentUser.getScope() == UserScope.PROVIDER) {
-            // Admin Hệ thống: CẤM xem role trường
+            // Check quyền: Admin hệ thống chỉ được xem role hệ thống
             if (typeRole != null && typeRole != RoleType.PROVIDER) {
                 throw new AppException.ForbiddenException("Admin hệ thống không được phép xem danh sách Role của trường học");
             }
-            roles = roleRepository.findBySchoolIsNull();
-            // Filter cứng để đảm bảo chỉ trả về PROVIDER role
-            roles = roles.stream().filter(r -> r.getTypeRole() == RoleType.PROVIDER).collect(Collectors.toList());
+            // Gọi Repository lấy Page
+            pageData = roleRepository.findBySchoolIsNull(RoleType.PROVIDER, pageable);
         }
         else {
-            // Admin Trường: CẤM xem role hệ thống
+            // Check quyền: Admin trường chỉ được xem role trường
             if (typeRole != null && typeRole != RoleType.SCHOOL) {
                 throw new AppException.ForbiddenException("Admin trường không được phép xem Role hệ thống");
             }
-            roles = roleRepository.findBySchoolId(currentUser.getSchool().getId());
+
+            // Gọi Repository lấy Page theo SchoolId
+            pageData = roleRepository.findBySchoolId(currentUser.getSchool().getId(), pageable);
         }
 
-        return new ApiResponse<>(true, "Lấy danh sách thành công", mapRolesToResponses(roles));
+        return new ApiResponse<>(true, "Lấy danh sách thành công", mapRolePageToResponse(pageData));
+
 
     }
 
@@ -93,7 +104,7 @@ public class RoleServiceImpl implements RoleService {
     }
 
     @Override
-    public ApiResponse<List<RoleResponse>> searchRoles(String keyword, Long schoolId, RoleType typeRole) {
+    public ApiResponse<PageResponse<RoleResponse>> searchRoles(String keyword, Long schoolId, RoleType typeRole, int page, int size) {
         User currentUser = getCurrentUser();
         ensureAdminAccess(currentUser);
 
@@ -106,15 +117,15 @@ public class RoleServiceImpl implements RoleService {
             }
         }
 
-        // 2. Gọi Repository
-        List<Role> roles = roleRepository.searchRoles(searchSchoolId, keyword, typeRole);
+        // 2. Tạo Pageable (Tham số thứ 4 còn thiếu)
+        Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
 
-        // 3. Map sang Response
-        List<RoleResponse> roleResponses = roles.stream()
-                .map(this::toRoleResponse)
-                .collect(Collectors.toList());
+        // 3. Gọi Repository (Truyền đủ 4 tham số)
+        // Lưu ý: searchRoles trả về Page<Role>, không phải List<Role>
+        Page<Role> pageData = roleRepository.searchRoles(searchSchoolId, keyword, typeRole, pageable);
 
-        return new ApiResponse<>(true, "Tìm kiếm thành công", roleResponses);
+        // 4. Map sang PageResponse (Dùng hàm helper đã viết ở bước trước)
+        return new ApiResponse<>(true, "Tìm kiếm thành công", mapRolePageToResponse(pageData));
     }
 
     // =================================================================
@@ -176,11 +187,11 @@ public class RoleServiceImpl implements RoleService {
                 throw new ValidationException(Map.of("roleName", "Tên quyền hạn đã tồn tại"));
             }
         }
-
-        // Cập nhật
-        existingRole.setRoleName(request.getRoleName());
-        existingRole.setDescription(request.getDescription());
-        existingRole.setUpdateBy(currentUser.getId()); // Tự lấy ID
+        roleMapper.updateEntityFromRequest(existingRole, request);
+//        // Cập nhật
+//        existingRole.setRoleName(request.getRoleName());
+//        existingRole.setDescription(request.getDescription());
+        existingRole.setUpdateBy(currentUser.getId());
 
         return new ApiResponse<>(true, "Cập nhật thành công", toRoleResponse(roleRepository.save(existingRole)));
     }
@@ -343,5 +354,21 @@ public class RoleServiceImpl implements RoleService {
     private List<RoleResponse> mapRolesToResponses(List<Role> roles) {
         if (roles == null || roles.isEmpty()) return List.of();
         return roles.stream().map(this::toRoleResponse).collect(Collectors.toList());
+    }
+    private PageResponse<RoleResponse> mapRolePageToResponse(Page<Role> pageData) {
+        // 1. Convert list entity sang list DTO
+        List<RoleResponse> responseList = pageData.getContent().stream()
+                .map(this::toRoleResponse)
+                .collect(Collectors.toList());
+
+        // 2. Build PageResponse
+
+        return PageResponse.<RoleResponse>builder()
+                .data(responseList) // <--- SỬA CHỖ NÀY: Thử đổi 'content' thành 'data'
+                .page(pageData.getNumber() + 1)
+                .size(pageData.getSize())
+                .totalElements(pageData.getTotalElements())
+                .totalPages(pageData.getTotalPages())
+                .build();
     }
 }
