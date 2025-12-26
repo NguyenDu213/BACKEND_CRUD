@@ -16,7 +16,8 @@ import java.time.LocalDateTime;
 @Builder
 public class UserRequest {
     @NotBlank(message = "Họ tên không được để trống")
-    @Size(min = 2, max = 100, message = "Họ tên phải từ 2 đến 100 ký tự")
+    @Size(min = 2, max = 255, message = "Họ tên phải từ 2 đến 255 ký tự")
+    @Pattern(regexp = "^[\\p{L}\\s]+$", message = "Họ tên chỉ được chứa chữ cái và khoảng trắng")
     private String fullName;
 
     @NotNull(message = "Giới tính không được để trống")
