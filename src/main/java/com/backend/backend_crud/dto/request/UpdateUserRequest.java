@@ -26,7 +26,7 @@ public class UpdateUserRequest {
     @JsonDeserialize(using = LocalDateTimeDeserializer.class)
     private LocalDateTime birthYear;
 
-    @Size(min = 5, max = 255, message = "Địa chỉ phải từ 5 đến 255 ký tự")
+    @Size(min = 3, max = 255, message = "Địa chỉ phải từ 3 đến 255 ký tự")
     private String address;
 
     @Pattern(regexp = "^(0|\\+84)[0-9]{9,10}$", message = "Số điện thoại không hợp lệ. Định dạng: 0xxxxxxxxx hoặc +84xxxxxxxxx")
