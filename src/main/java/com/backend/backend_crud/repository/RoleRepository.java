@@ -3,6 +3,8 @@ package com.backend.backend_crud.repository;
 import com.backend.backend_crud.entity.Role;
 import com.backend.backend_crud.entity.RoleType;
 import com.backend.backend_crud.entity.School;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -20,15 +22,14 @@ public interface RoleRepository extends JpaRepository<Role, Long> {
                         "(:schoolId IS NULL OR r.school.id = :schoolId) AND " +
                         "(:keyword IS NULL OR LOWER(r.roleName) LIKE LOWER(CONCAT('%', :keyword, '%'))) AND " +
                         "(:type IS NULL OR r.typeRole = :type)")
-        List<Role> searchRoles(@Param("schoolId") Long schoolId,
-                        @Param("keyword") String keyword,
-                        @Param("type") RoleType type);
+        Page<Role> searchRoles(@Param("schoolId") Long schoolId,
+                               @Param("keyword") String keyword,
+                               @Param("type") RoleType type,
+                               Pageable pageable);
 
-        List<Role> findBySchoolId(Long schoolId);
+        Page<Role> findBySchoolId(Long schoolId, Pageable pageable);
 
-        List<Role> findBySchoolIsNull();
-
-        List<Role> findByTypeRoleAndSchoolIsNull(RoleType typeRole);
+        Page<Role> findBySchoolIsNull(RoleType typeRole, Pageable pageable);
 
         @Query("SELECT COUNT(r) > 0 FROM Role r WHERE " +
                         "r.roleName = :roleName AND " +
