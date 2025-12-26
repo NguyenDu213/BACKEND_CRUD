@@ -29,7 +29,7 @@ public class UserRequest {
     private LocalDateTime birthYear;
 
     @NotBlank(message = "Địa chỉ không được để trống")
-    @Size(max = 255, message = "Địa chỉ không được quá 255 ký tự")
+    @Size(min = 5, max = 255, message = "Địa chỉ phải từ 5 đến 255 ký tự")
     private String address;
 
     @NotBlank(message = "Số điện thoại không được để trống")
