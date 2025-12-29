@@ -9,7 +9,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import java.util.List;
 import java.util.Optional;
 
 public interface RoleRepository extends JpaRepository<Role, Long> {
@@ -21,15 +20,18 @@ public interface RoleRepository extends JpaRepository<Role, Long> {
         @Query("SELECT r FROM Role r WHERE " +
                         "(:schoolId IS NULL OR r.school.id = :schoolId) AND " +
                         "(:keyword IS NULL OR LOWER(r.roleName) LIKE LOWER(CONCAT('%', :keyword, '%'))) AND " +
-                        "(:type IS NULL OR r.typeRole = :type)")
+                        "(:type IS NULL OR r.typeRole = :type) AND " +
+                        "r.roleName != 'SYSTEM_ADMIN' AND r.roleName != 'SCHOOL_ADMIN'")
         Page<Role> searchRoles(@Param("schoolId") Long schoolId,
-                               @Param("keyword") String keyword,
-                               @Param("type") RoleType type,
-                               Pageable pageable);
+                        @Param("keyword") String keyword,
+                        @Param("type") RoleType type,
+                        Pageable pageable);
 
-        Page<Role> findBySchoolId(Long schoolId, Pageable pageable);
+        @Query("SELECT r FROM Role r WHERE r.school.id = :schoolId AND r.roleName != 'SCHOOL_ADMIN'")
+        Page<Role> findBySchoolId(@Param("schoolId") Long schoolId, Pageable pageable);
 
-        Page<Role> findBySchoolIsNull(RoleType typeRole, Pageable pageable);
+        @Query("SELECT r FROM Role r WHERE r.school IS NULL AND r.typeRole = :typeRole AND r.roleName != 'SYSTEM_ADMIN'")
+        Page<Role> findBySchoolIsNull(@Param("typeRole") RoleType typeRole, Pageable pageable);
 
         @Query("SELECT COUNT(r) > 0 FROM Role r WHERE " +
                         "r.roleName = :roleName AND " +

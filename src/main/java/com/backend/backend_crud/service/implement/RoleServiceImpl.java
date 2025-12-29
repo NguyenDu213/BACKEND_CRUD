@@ -48,7 +48,6 @@ public class RoleServiceImpl implements RoleService {
 
         // 1. Tạo Pageable
         Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
-
         Page<Role> pageData;
 
         if (currentUser.getScope() == UserScope.PROVIDER) {
@@ -124,7 +123,7 @@ public class RoleServiceImpl implements RoleService {
         // Lưu ý: searchRoles trả về Page<Role>, không phải List<Role>
         Page<Role> pageData = roleRepository.searchRoles(searchSchoolId, keyword, typeRole, pageable);
 
-        // 4. Map sang PageResponse (Dùng hàm helper đã viết ở bước trước)
+        // 4. Map sang PageResponse
         return new ApiResponse<>(true, "Tìm kiếm thành công", mapRolePageToResponse(pageData));
     }
 
@@ -188,9 +187,9 @@ public class RoleServiceImpl implements RoleService {
             }
         }
         roleMapper.updateEntityFromRequest(existingRole, request);
-//        // Cập nhật
-//        existingRole.setRoleName(request.getRoleName());
-//        existingRole.setDescription(request.getDescription());
+        // Cập nhật
+        // existingRole.setRoleName(request.getRoleName());
+        // existingRole.setDescription(request.getDescription());
         existingRole.setUpdateBy(currentUser.getId());
 
         return new ApiResponse<>(true, "Cập nhật thành công", toRoleResponse(roleRepository.save(existingRole)));
@@ -239,23 +238,16 @@ public class RoleServiceImpl implements RoleService {
         validateRoleAccess(currentUser, newRole);
 
         // CHECK QUYỀN cho newRole - phải cùng phạm vi
-        if (oldRole.getTypeRole() == RoleType.PROVIDER) {
-            if (newRole.getTypeRole() != RoleType.PROVIDER) {
-                throw new AppException.BadRequestException("Role mới phải cùng loại (Hệ thống) với role cũ");
-            }
-        } else {
-            if (newRole.getTypeRole() != RoleType.SCHOOL) {
-                throw new AppException.BadRequestException("Role mới phải cùng loại (Trường học) với role cũ");
-            }
-            // Check cùng trường
-            School oldSchool = oldRole.getSchool();
-            School newSchool = newRole.getSchool();
-            if (oldSchool != null && newSchool != null) {
-                if (!oldSchool.getId().equals(newSchool.getId())) {
-                    throw new AppException.BadRequestException("Role mới phải thuộc cùng trường với role cũ");
-                }
-            } else if (oldSchool != null || newSchool != null) {
-                throw new AppException.BadRequestException("Role mới phải thuộc cùng trường với role cũ");
+        if (oldRole.getTypeRole() != newRole.getTypeRole()) {
+            throw new AppException.BadRequestException("Role mới phải cùng loại với role cũ");
+        }
+
+        if (oldRole.getTypeRole() == RoleType.SCHOOL) {
+            Long oldSchoolId = oldRole.getSchool() != null ? oldRole.getSchool().getId() : null;
+            Long newSchoolId = newRole.getSchool() != null ? newRole.getSchool().getId() : null;
+
+            if (oldSchoolId == null || !oldSchoolId.equals(newSchoolId)) {
+                throw new AppException.BadRequestException("Role mới phải thuộc cùng một trường với role cũ");
             }
         }
 
@@ -326,13 +318,13 @@ public class RoleServiceImpl implements RoleService {
             if (requestType != RoleType.PROVIDER) {
                 throw new AppException.ForbiddenException("Admin hệ thống KHÔNG ĐƯỢC tạo role trường học");
             }
-            return null; // System Role luôn có school = null
+            return null;
         } else {
             // UserScope.SCHOOL (Đã qua hàm ensureAdminAccess nên chắc chắn là School Admin)
             if (requestType != RoleType.SCHOOL) {
                 throw new AppException.ForbiddenException("Admin trường KHÔNG ĐƯỢC tạo role hệ thống");
             }
-            return user.getSchool(); // School Role luôn gắn với trường của Admin đó
+            return user.getSchool();
         }
     }
 
@@ -351,20 +343,37 @@ public class RoleServiceImpl implements RoleService {
         return roleMapper.mapToResponse(role, userCount);
     }
 
-    private List<RoleResponse> mapRolesToResponses(List<Role> roles) {
-        if (roles == null || roles.isEmpty()) return List.of();
-        return roles.stream().map(this::toRoleResponse).collect(Collectors.toList());
-    }
+
     private PageResponse<RoleResponse> mapRolePageToResponse(Page<Role> pageData) {
-        // 1. Convert list entity sang list DTO
-        List<RoleResponse> responseList = pageData.getContent().stream()
-                .map(this::toRoleResponse)
+        if (pageData.isEmpty()) {
+            return PageResponse.<RoleResponse>builder()
+                    .data(List.of())
+                    .page(pageData.getNumber() + 1)
+                    .size(pageData.getSize())
+                    .totalElements(pageData.getTotalElements())
+                    .totalPages(pageData.getTotalPages())
+                    .build();
+        }
+
+        List<Long> roleIds = pageData.getContent().stream()
+                .map(Role::getId)
                 .collect(Collectors.toList());
 
-        // 2. Build PageResponse
+        Map<Long, Long> userCountMap = userRepository.countUsersByRoleIds(roleIds).stream()
+                .collect(Collectors.toMap(
+                        row -> (Long) row[0],
+                        row -> (Long) row[1],
+                        (existingValue, newValue) -> existingValue
+                ));
+        List<RoleResponse> responseList = pageData.getContent().stream()
+                .map(role -> {
+                    Long count = userCountMap.getOrDefault(role.getId(), 0L);
+                    return roleMapper.mapToResponse(role, count);
+                })
+                .collect(Collectors.toList());
 
         return PageResponse.<RoleResponse>builder()
-                .data(responseList) // <--- SỬA CHỖ NÀY: Thử đổi 'content' thành 'data'
+                .data(responseList)
                 .page(pageData.getNumber() + 1)
                 .size(pageData.getSize())
                 .totalElements(pageData.getTotalElements())

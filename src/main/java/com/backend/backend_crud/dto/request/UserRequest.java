@@ -30,10 +30,11 @@ public class UserRequest {
 
     @NotBlank(message = "Địa chỉ không được để trống")
     @Size(min = 3, max = 255, message = "Địa chỉ phải từ 3 đến 255 ký tự")
+    @Pattern(regexp = "^[a-zA-Z0-9\\s/,.-]+$", message = "Địa chỉ chỉ được chứa chữ cái, số, khoảng trắng và các ký tự: / , . -")
     private String address;
 
     @NotBlank(message = "Số điện thoại không được để trống")
-    @Pattern(regexp = "^(0|\\+84)[0-9]{9,10}$", message = "Số điện thoại không hợp lệ")
+    @Pattern(regexp = "^0[0-9]{9}$", message = "Số điện thoại không hợp lệ. Chỉ được phép chứa số, bắt đầu bằng 0 và có 10 chữ số (ví dụ: 0123456789)")
     private String phoneNumber;
 
     @NotBlank(message = "Email không được để trống")
