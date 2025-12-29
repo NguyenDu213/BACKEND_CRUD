@@ -10,7 +10,7 @@ import java.util.List;
 
 @Service
 public interface UserService {
-    ApiResponse<List<UserResponse>> getAll(Long userId);
+    ApiResponse<List<UserResponse>> getAll(Long userId, String keyword);
 
     ApiResponse<UserResponse> createUser(UserRequest request, Long userId);
 

@@ -25,10 +25,10 @@ public class UserController {
     private final HttpServletRequest httpServletRequest;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<UserResponse>>> getAll() {
+    public ResponseEntity<ApiResponse<List<UserResponse>>> getAll(@RequestParam(required = false) String keyword) {
         Long currentUserId = getCurrentUserId();
 
-        return ResponseEntity.ok(userService.getAll(currentUserId));
+        return ResponseEntity.ok(userService.getAll(currentUserId, keyword));
     }
 
     @GetMapping("/search")

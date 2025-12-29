@@ -30,13 +30,15 @@ public class UserImplement implements UserService {
     private final RoleRepository roleRepository;
 
     @Override
-    public ApiResponse<List<UserResponse>> getAll(Long userId) {
-        try {
+    public ApiResponse<List<UserResponse>> getAll(Long userId, String keyword) {
             UserScope scope = userRepository.findScopeByUserId(userId);
             String role = userRepository.findRoleNameByUserId(userId);
+            String search = (keyword == null || keyword.trim().isEmpty())
+                            ? null
+                            : keyword.trim();
             if (scope == UserScope.PROVIDER) {
                 if (role.equals("SYSTEM_ADMIN")) {
-                    List<User> listUser = userRepository.findAllSystemUsers();
+                    List<User> listUser = userRepository.findAllSystemUsers(keyword);
                     List<UserResponse> response = listUser.stream().map(UserMapper::mapToResponse).toList();
                     return new ApiResponse<>(true, "Lấy danh sách User thành công", response);
                 }
@@ -49,7 +51,7 @@ public class UserImplement implements UserService {
                                 "Tài khoản không thuộc trường nào và không phải tài khoản hệ thống",
                                 null);
                     }
-                    List<User> listUser = userRepository.findAllSchoolUsers(idSchool);
+                    List<User> listUser = userRepository.findAllSchoolUsers(idSchool, keyword);
                     List<UserResponse> response = listUser.stream().map(UserMapper::mapToResponse).toList();
                     return new ApiResponse<>(true, "Lấy danh sách User thành công", response);
                 }
@@ -58,9 +60,6 @@ public class UserImplement implements UserService {
                     false,
                     "Không lấy được danh sách người dùng",
                     null);
-        } catch (Exception ex) {
-            return new ApiResponse<>(false, ex.getMessage(), null);
-        }
     }
 
     @Override
