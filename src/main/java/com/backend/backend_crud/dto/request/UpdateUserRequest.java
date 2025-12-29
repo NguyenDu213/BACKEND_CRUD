@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
 @Builder
 public class UpdateUserRequest {
 
-    @Size(min = 2, max = 100, message = "Họ tên phải từ 2 đến 100 ký tự")
+    @Size(min = 2, max = 255, message = "Họ tên phải từ 2 đến 255 ký tự")
     @Pattern(regexp = "^[\\p{L}\\s]+$", message = "Họ tên chỉ được chứa chữ cái và khoảng trắng")
     private String fullName;
 
@@ -26,14 +26,13 @@ public class UpdateUserRequest {
     @JsonDeserialize(using = LocalDateTimeDeserializer.class)
     private LocalDateTime birthYear;
 
-    @Size(min = 5, max = 255, message = "Địa chỉ phải từ 5 đến 255 ký tự")
+    @Size(min = 3, max = 255, message = "Địa chỉ phải từ 3 đến 255 ký tự")
     private String address;
 
     @Pattern(regexp = "^(0|\\+84)[0-9]{9,10}$", message = "Số điện thoại không hợp lệ. Định dạng: 0xxxxxxxxx hoặc +84xxxxxxxxx")
     private String phoneNumber;
 
     @Size(max = 100, message = "Email không được quá 100 ký tự")
-
     @Email(message = "Email không hợp lệ")
     private String email;
 
@@ -43,7 +42,7 @@ public class UpdateUserRequest {
 
     private Long schoolId;
 
-    @Min(value = 1, message = "Role ID phải lớn hơn 0")
+    @Min(value = 1, message = "Role phải được chọn")
     private Long roleId;
 
     private Boolean isActive;
